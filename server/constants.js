@@ -80,12 +80,9 @@ module.exports = {
 
   DEFAULT_IMAGES: Object.freeze({
     CATEGORY:
-      "https://res.cloudinary.com/drvdnqydw/image/upload/f_auto,q_auto/v1/Images/hrhc8iwbjl2qnnqu9kaq?_a=BAMAK+Jw0",
-    SUBCATEGORY:
-      "https://res.cloudinary.com/drvdnqydw/image/upload/f_auto,q_auto/v1/Images/zsbowllown6ddeb4jnw0?_a=BAMAK+Jw0",
-    PRODUCT:
-      "https://res.cloudinary.com/drvdnqydw/image/upload/f_auto,q_auto/v1/Images/zsbowllown6ddeb4jnw0?_a=BAMAK+Jw0",
-    BANNER:
-      "https://res.cloudinary.com/drvdnqydw/image/upload/f_auto,q_auto/v1/Images/zsbowllown6ddeb4jnw0?_a=BAMAK+Jw0",
+      "https://callwave.com/wp-content/uploads/2023/11/image-166-1024x523.png",
+    MOVIE:
+      "https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png",
+    // BANNER: "",
   }),
 };
