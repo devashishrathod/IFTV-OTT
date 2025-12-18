@@ -24,3 +24,33 @@ exports.validateCreateSubscription = (data) => {
   });
   return createSchema.validate(data);
 };
+
+exports.validateGetAllSubscriptionQueries = (query) => {
+  const schema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().trim().allow(""),
+    price: Joi.number().min(0),
+    minPrice: Joi.number().min(0),
+    maxPrice: Joi.number().min(0),
+    fromDate: Joi.date().iso(),
+    toDate: Joi.date().iso(),
+    name: Joi.string().trim(),
+    type: Joi.string().valid(...Object.values(SUBSCRIPTION_TYPES)),
+    isActive: Joi.boolean(),
+  })
+    .custom((value, helpers) => {
+      if (
+        value.minPrice !== undefined &&
+        value.maxPrice !== undefined &&
+        value.minPrice > value.maxPrice
+      ) {
+        return helpers.message(
+          "minPrice must be less than or equal to maxPrice"
+        );
+      }
+      return value;
+    })
+    .unknown(true);
+  return schema.validate(query, { abortEarly: false });
+};
