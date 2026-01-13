@@ -12,6 +12,6 @@ const {
 router.post("/add", isAdmin, createSubscription);
 router.get("/get/:id", get);
 router.get("/get-all", getAll);
-router.delete("/delete/:id", deleteSubscription);
+router.delete("/delete/:id", isAdmin, deleteSubscription);
 
 module.exports = router;

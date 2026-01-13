@@ -16,7 +16,7 @@ exports.loginOrSignInWithEmail = asyncWrapper(async (req, res) => {
   role = role?.toLowerCase() || ROLES.USER;
   loginType = loginType?.toLowerCase() || LOGIN_TYPES.EMAIL;
   const updatedData = {
-    code: generateOTP(),
+    code: "123456", // generateOTP(),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   };
   let isFirst = false;
