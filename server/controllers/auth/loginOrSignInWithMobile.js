@@ -17,7 +17,11 @@ exports.loginOrSignInWithMobile = asyncWrapper(async (req, res) => {
     isFirst = true;
     user = User.create({ mobile, role, loginType, password: defaultPassword });
   }
-  const otpData = { otp: "123456" }; // await sendOtpToMobile(mobile);
+  const otpData = {
+    Status: "Success",
+    Details: "fde8faad-8573-4745-966c-a70b96c754d3",
+  };
+  // await sendOtpToMobile(mobile);
   return sendSuccess(
     res,
     200,
