@@ -11,21 +11,17 @@ exports.loginOrSignInWithMobile = asyncWrapper(async (req, res) => {
   loginType = loginType?.toLowerCase() || LOGIN_TYPES.MOBILE;
   let isFirst = false;
   let user = await User.findOne({ mobile, role, isDeleted: false }).select(
-    "+password"
+    "+password",
   );
   if (!user) {
     isFirst = true;
     user = User.create({ mobile, role, loginType, password: defaultPassword });
   }
-  const otpData = {
-    Status: "Success",
-    Details: "fde8faad-8573-4745-966c-a70b96c754d3",
-  };
-  // await sendOtpToMobile(mobile);
+  const otpData = await sendOtpToMobile(mobile);
   return sendSuccess(
     res,
     200,
     "OTP has been sent to your Mobile. Please check your inbox.",
-    { otpData, isFirst }
+    { otpData, isFirst },
   );
 });

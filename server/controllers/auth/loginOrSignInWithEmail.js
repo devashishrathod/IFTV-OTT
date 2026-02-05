@@ -16,12 +16,12 @@ exports.loginOrSignInWithEmail = asyncWrapper(async (req, res) => {
   role = role?.toLowerCase() || ROLES.USER;
   loginType = loginType?.toLowerCase() || LOGIN_TYPES.EMAIL;
   const updatedData = {
-    code: "123456", // generateOTP(),
+    code: generateOTP(),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   };
   let isFirst = false;
   let user = await User.findOne({ email, role, isDeleted: false }).select(
-    "+password"
+    "+password",
   );
   if (!user) {
     isFirst = true;
@@ -41,6 +41,6 @@ exports.loginOrSignInWithEmail = asyncWrapper(async (req, res) => {
     res,
     200,
     "OTP has been sent to your Email. Please check your inbox.",
-    { isFirst }
+    { isFirst },
   );
 });

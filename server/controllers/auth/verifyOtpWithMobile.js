@@ -13,12 +13,11 @@ exports.verifyOtpWithMobile = asyncWrapper(async (req, res) => {
   loginType = loginType?.toLowerCase() || LOGIN_TYPES.MOBILE;
   currentScreen = currentScreen?.toUpperCase();
   let user = await User.findOne({ mobile, role, isDeleted: false }).select(
-    "-password"
+    "-password",
   );
   if (!user) throwError(404, "User not found with this mobile number");
-  // let result = await verifyOtpToMobile(sessionId, otp);
-  // if (result?.Status == "Success") {
-  if (otp === "123456") {
+  let result = await verifyOtpToMobile(sessionId, otp);
+  if (result?.Status == "Success") {
     user.loginType = loginType;
     user.isMobileVerified = true;
     user.isLoggedIn = true;
