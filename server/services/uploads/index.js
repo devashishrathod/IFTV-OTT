@@ -4,6 +4,11 @@ const {
   deleteFile,
   getOptimizedImageUrl,
 } = require("../../helpers/cloudinary");
+const {
+  uploadStreamVideo,
+  deleteStreamVideo,
+  isCloudflareStreamUrl,
+} = require("../cloudflare/stream");
 
 exports.uploadImage = async (imagePath) => {
   const result = await uploadFile(imagePath, {
@@ -22,11 +27,13 @@ exports.uploadAudio = async (audioPath) => {
 };
 
 exports.uploadVideo = async (videoPath) => {
-  const result = await uploadFile(videoPath, {
-    resource_type: "video",
-    folder: "Videos",
-  });
-  return result.secure_url;
+  //  const result = await uploadFile(videoPath, {
+  //   resource_type: "video",
+  //   folder: "Videos",
+  // });
+  // return result.secure_url;
+  const result = await uploadStreamVideo(videoPath);
+  return result.url;
 };
 
 exports.uploadPDF = async (pdfPath, fileName) => {
@@ -41,5 +48,13 @@ exports.uploadPDF = async (pdfPath, fileName) => {
 };
 
 exports.deleteImage = async (url) => deleteFile(url, "image");
-exports.deleteAudioOrVideo = async (url) => deleteFile(url, "video");
+
+// exports.deleteAudioOrVideo = async (url) => deleteFile(url, "video");
+
+exports.deleteAudioOrVideo = async (url) => {
+  if (isCloudflareStreamUrl(url)) {
+    return await deleteStreamVideo(url);
+  }
+  return await deleteFile(url, "video");
+};
 exports.deletePDF = async (url) => deleteFile(url, "raw");
