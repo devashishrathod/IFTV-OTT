@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
+// const cors = require("cors");
 const morgan = require("morgan");
 const fileUpload = require("express-fileupload");
 
@@ -14,7 +14,7 @@ const port = process.env.PORT || 8500;
 
 app.use(fileUpload({ useTempFiles: true, tempFileDir: "/tmp/" }));
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
 app.use(morgan("dev"));
 app.use("/iftv-ott/", allRoutes);
 app.get("/", async (req, res) => {
@@ -27,5 +27,5 @@ app.use(errorHandler);
 
 mongoDb();
 app.listen(port, () =>
-  console.log(`✅ IFTV-OTT Server running on http://localhost:${port}`)
+  console.log(`✅ IFTV-OTT Server running on http://localhost:${port}`),
 );
