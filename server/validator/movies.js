@@ -18,7 +18,7 @@ exports.validateCreateMovie = (data) => {
         Joi.string()
           .min(3)
           .max(120)
-          .custom((value) => [value])
+          .custom((value) => [value]),
       )
       .custom((value) => {
         if (typeof value === "string") return [value];
@@ -38,7 +38,7 @@ exports.validateCreateMovie = (data) => {
         Joi.string()
           .min(3)
           .max(120)
-          .custom((value) => [value])
+          .custom((value) => [value]),
       )
       .custom((value) => {
         if (typeof value === "string") return [value];
@@ -61,6 +61,72 @@ exports.validateCreateMovie = (data) => {
     durationInSeconds: Joi.number().min(0).optional().messages({
       "number.min": "Duration in seconds cannot be negative",
     }),
+    videoUrl: Joi.string().uri().optional(),
+    videoUid: Joi.string().length(32).optional(),
+    isActive: Joi.boolean().optional(),
+  });
+  return schema.validate(data, { abortEarly: false });
+};
+
+exports.validateUpdateMovie = (data) => {
+  const schema = Joi.object({
+    title: Joi.string().min(3).max(120).optional().messages({
+      "string.min": "Title must have at least {#limit} characters",
+      "string.max": "Title cannot exceed {#limit} characters",
+    }),
+    description: Joi.string().min(10).max(500).optional().messages({
+      "string.min": "Description must have at least {#limit} characters",
+      "string.max": "Description cannot exceed {#limit} characters",
+    }),
+    casts: Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string().min(3).max(120)).optional(),
+        Joi.string()
+          .min(3)
+          .max(120)
+          .custom((value) => [value]),
+      )
+      .custom((value) => {
+        if (typeof value === "string") return [value];
+        if (Array.isArray(value)) return value;
+        if (value && !Array.isArray(value))
+          throwError(422, "Casts must be an array or string");
+      })
+      .messages({
+        "string.min": "Cast name must have at least {#limit} characters",
+        "string.max": "Cast name cannot exceed {#limit} characters",
+        "array.base": "Casts must be an array or string",
+      }),
+    languages: Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string().min(3).max(120)).optional(),
+        Joi.string()
+          .min(3)
+          .max(120)
+          .custom((value) => [value]),
+      )
+      .custom((value) => {
+        if (typeof value === "string") return [value];
+        if (Array.isArray(value)) return value;
+        if (value && !Array.isArray(value))
+          throwError(422, "Languages must be an array or string");
+      })
+      .messages({
+        "string.min": "Language name must have at least {#limit} characters",
+        "string.max": "Language name cannot exceed {#limit} characters",
+        "array.base": "Languages must be an array or string",
+      }),
+    categoryId: objectId()
+      .messages({
+        "any.invalid": "Invalid categoryId format",
+      })
+      .optional(),
+    releaseDate: Joi.date().optional(),
+    durationInSeconds: Joi.number().min(0).optional().messages({
+      "number.min": "Duration in seconds cannot be negative",
+    }),
+    videoUrl: Joi.string().uri().optional(),
+    videoUid: Joi.string().length(32).optional(),
     isActive: Joi.boolean().optional(),
   });
   return schema.validate(data, { abortEarly: false });

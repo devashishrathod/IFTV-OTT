@@ -7,13 +7,13 @@ const {
   getAll,
   get,
   deleteMovie,
-  // update,
+  update,
 } = require("../controllers/movies");
 
 router.post("/add", create);
 router.get("/getAll", getAll);
 router.get("/:id/get", get);
 router.delete("/:id/delete", isAdmin, deleteMovie);
-// router.put("/:id/update", isAdmin, update);
+router.put("/update/:id", isAdmin, update);
 
 module.exports = router;
