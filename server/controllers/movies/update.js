@@ -8,7 +8,7 @@ const { updateMovie } = require("../../services/movies");
 const { validateUpdateMovie } = require("../../validator/movies");
 
 exports.update = asyncWrapper(async (req, res) => {
-  const { error, value } = validateUpdateMovie(req.body);
+  const { error, value } = validateUpdateMovie(req.body || {});
   if (error) throwError(422, cleanJoiError(error));
   const movieId = req.params.id;
   const image = req.files?.image;

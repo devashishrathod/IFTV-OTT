@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const Movie = require("../../models/Movie");
 const { pagination, validateObjectId } = require("../../utils");
 
+const toRegex = (value, exact = false) => {
+  const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(exact ? `^${escaped}$` : escaped, "i");
+};
+
 exports.getAllMovies = async (query) => {
   let {
     page = 1,
@@ -24,15 +29,15 @@ exports.getAllMovies = async (query) => {
   if (typeof isActive !== "undefined") {
     matchStage.isActive = isActive === "true" || isActive === true;
   }
-  if (title) matchStage.title = title;
-  if (casts) matchStage.casts = { $regex: new RegExp(casts, "i") };
-  if (languages) matchStage.languages = { $regex: new RegExp(languages, "i") };
+  if (title) matchStage.title = toRegex(title.trim(), true);
+  if (casts) matchStage.casts = { $regex: toRegex(casts) };
+  if (languages) matchStage.languages = { $regex: toRegex(languages) };
   if (categoryId) {
     validateObjectId(categoryId, "Category Id");
     matchStage.categoryId = new mongoose.Types.ObjectId(categoryId);
   }
   if (search) {
-    const searchRegex = new RegExp(search, "i");
+    const searchRegex = toRegex(search);
     matchStage.$or = [
       { title: searchRegex },
       { description: searchRegex },

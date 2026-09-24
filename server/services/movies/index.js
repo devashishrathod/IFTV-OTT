@@ -3,6 +3,7 @@ const { getAllMovies } = require("./getAllMovies");
 const { getMovie } = require("./getMovie");
 const { deleteMovie } = require("./deleteMovie");
 const { updateMovie } = require("./updateMovie");
+const { createVideoUploadUrl, getVideoStatus } = require("./movieVideo");
 
 module.exports = {
   createMovie,
@@ -10,4 +11,6 @@ module.exports = {
   getMovie,
   deleteMovie,
   updateMovie,
+  createVideoUploadUrl,
+  getVideoStatus,
 };

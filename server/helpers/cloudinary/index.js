@@ -40,7 +40,14 @@ exports.uploadFile = async (filePath, options = {}) => {
     return result;
   } catch (error) {
     console.error("Cloudinary Upload Error:", error);
-    throw new Error("Cloudinary upload failed");
+    const uploadError = new Error(
+      error?.http_code === 400 && error?.message
+        ? `Cloudinary upload failed: ${error.message}`
+        : "Cloudinary upload failed",
+    );
+    // Bad file from the client (e.g. corrupt image) is not a server error
+    if (error?.http_code === 400) uploadError.status = 422;
+    throw uploadError;
   }
 };
 

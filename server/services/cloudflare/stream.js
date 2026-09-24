@@ -58,7 +58,6 @@ const parseUidFromTusUrl = (uploadUrl) => {
 const uploadViaTus = async (videoPath) => {
   const { accountId, apiToken } = createApiClient();
   const fileSize = fs.statSync(videoPath).size;
-  const streamDomain = cloudflare.required("CLOUDFLARE_STREAM_DOMAIN");
   const ext = path.extname(videoPath)?.toLowerCase();
   const filetype = ext === ".mp4" ? "video/mp4" : "application/octet-stream";
 
@@ -80,15 +79,54 @@ const uploadViaTus = async (videoPath) => {
         const uid = parseUidFromTusUrl(upload.url);
         if (!uid)
           return reject(new Error("Cloudflare TUS upload did not return uid"));
-        resolve({ uid, url: `https://${streamDomain}/${uid}/watch` });
+        resolve({ uid, url: buildWatchUrl(uid) });
       },
     });
     upload.start();
   });
 };
 
-exports.uploadStreamVideo = async (videoPath) => {
+const buildWatchUrl = (uid) =>
+  `https://${cloudflare.required("CLOUDFLARE_STREAM_DOMAIN")}/${uid}/watch`;
+
+const RETRYABLE_NETWORK_CODES = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ECONNABORTED",
+  "EPIPE",
+  "EAI_AGAIN",
+  "ENOTFOUND",
+]);
+
+const isRetryableError = (err) => {
+  const status = err?.response?.status;
+  if (status) return status >= 500 || status === 429;
+  return RETRYABLE_NETWORK_CODES.has(err?.code);
+};
+
+const uploadViaForm = async (videoPath) => {
   const { request } = createApiClient();
+  const form = new FormData();
+  form.append("file", fs.createReadStream(videoPath), {
+    filename: path.basename(videoPath),
+  });
+  const res = await request.post("", form, {
+    headers: {
+      ...form.getHeaders(),
+    },
+  });
+  if (!res?.data?.success) {
+    throw new Error(
+      res?.data?.errors?.[0]?.message || "Cloudflare Stream upload failed",
+    );
+  }
+  const uid = res.data.result?.uid;
+  if (!uid) throw new Error("Cloudflare Stream upload did not return uid");
+  return { uid, url: buildWatchUrl(uid) };
+};
+
+exports.uploadStreamVideo = async (videoPath) => {
+  createApiClient();
 
   if (!videoPath) throw new Error("videoPath is required");
   if (!fs.existsSync(videoPath)) {
@@ -101,39 +139,93 @@ exports.uploadStreamVideo = async (videoPath) => {
     return await uploadViaTus(videoPath);
   }
 
-  const form = new FormData();
-  form.append("file", fs.createReadStream(videoPath), {
-    filename: path.basename(videoPath),
-  });
-
-  try {
-    const res = await request.post("", form, {
-      headers: {
-        ...form.getHeaders(),
-      },
-    });
-
-    if (!res?.data?.success) {
-      throw new Error(
-        res?.data?.errors?.[0]?.message || "Cloudflare Stream upload failed",
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await uploadViaForm(videoPath);
+    } catch (err) {
+      if (err?.response?.status === 413) return await uploadViaTus(videoPath);
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        throw new Error(
+          "Cloudflare Stream rejected the API token (check CLOUDFLARE_API_TOKEN)",
+        );
+      }
+      if (!isRetryableError(err)) throw err;
+      if (attempt >= MAX_ATTEMPTS) {
+        // Last resort: chunked + resumable upload survives flaky connections.
+        console.warn(`Stream form upload failed ${attempt}x, trying TUS`);
+        return await uploadViaTus(videoPath);
+      }
+      console.warn(
+        `Stream upload attempt ${attempt} failed (${err.code || err.response?.status}), retrying`,
       );
+      await new Promise((r) => setTimeout(r, attempt * 2000));
     }
-
-    const uid = res.data.result?.uid;
-    if (!uid) throw new Error("Cloudflare Stream upload did not return uid");
-
-    const streamDomain = cloudflare.required("CLOUDFLARE_STREAM_DOMAIN");
-    return {
-      uid,
-      url: `https://${streamDomain}/${uid}/watch`,
-    };
-  } catch (err) {
-    const status = err?.response?.status;
-    if (status === 413) {
-      return await uploadViaTus(videoPath);
-    }
-    throw err;
   }
+};
+
+/**
+ * Creates a one-time TUS upload URL so the admin panel can upload a (GB)
+ * video directly to Cloudflare, without passing through this server.
+ */
+exports.createDirectUpload = async ({ fileSize, fileName, maxDurationSeconds }) => {
+  const { accountId, apiToken } = createApiClient();
+  const b64 = (value) => Buffer.from(String(value)).toString("base64");
+  const metadata = [`maxDurationSeconds ${b64(maxDurationSeconds)}`];
+  if (fileName) metadata.push(`name ${b64(fileName)}`);
+
+  const res = await axios.post(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`,
+    null,
+    {
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        "Tus-Resumable": "1.0.0",
+        "Upload-Length": String(fileSize),
+        "Upload-Metadata": metadata.join(","),
+      },
+      validateStatus: () => true,
+    },
+  );
+  const uploadURL = res.headers?.location;
+  const uid = res.headers?.["stream-media-id"] || parseUidFromTusUrl(uploadURL);
+  if (res.status !== 201 || !uploadURL || !uid) {
+    const message =
+      res.data?.errors?.[0]?.message ||
+      (typeof res.data === "string" && res.data) ||
+      `Cloudflare direct upload failed with status ${res.status}`;
+    const error = new Error(message);
+    error.status = res.status === 401 || res.status === 403 ? 502 : 400;
+    throw error;
+  }
+  return { uid, uploadURL, videoUrl: buildWatchUrl(uid) };
+};
+
+/**
+ * Returns Cloudflare's view of a video, or null if it doesn't exist.
+ */
+exports.getStreamVideo = async (urlOrUid) => {
+  const uid = extractStreamUid(urlOrUid);
+  if (!uid) return null;
+  const { request } = createApiClient();
+  const res = await request.get(`/${uid}`, { validateStatus: () => true });
+  if (res.status === 404) return null;
+  if (!res?.data?.success) {
+    throw new Error(
+      res?.data?.errors?.[0]?.message || "Cloudflare Stream lookup failed",
+    );
+  }
+  const video = res.data.result;
+  return {
+    uid,
+    url: buildWatchUrl(uid),
+    state: video.status?.state,
+    errorReason: video.status?.errorReasonText || null,
+    pctComplete: video.status?.pctComplete ?? null,
+    readyToStream: Boolean(video.readyToStream),
+    durationInSeconds: video.duration > 0 ? Math.round(video.duration) : null,
+    size: video.size ?? null,
+  };
 };
 
 exports.deleteStreamVideo = async (urlOrUid) => {

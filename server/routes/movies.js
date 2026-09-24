@@ -8,7 +8,13 @@ const {
   get,
   deleteMovie,
   update,
+  videoUploadUrl,
+  videoStatus,
 } = require("../controllers/movies");
+
+// Direct (browser -> Cloudflare) upload for large / GB videos
+router.post("/video/upload-url", videoUploadUrl);
+router.get("/video/:uid/status", videoStatus);
 
 router.post("/add", create);
 router.get("/getAll", getAll);

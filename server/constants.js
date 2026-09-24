@@ -85,4 +85,39 @@ module.exports = {
       "https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png",
     // BANNER: "",
   }),
+
+  UPLOAD_LIMITS: Object.freeze({
+    // Max size for files sent through the server (multipart). GB movies should
+    // use the Cloudflare direct upload flow instead of this.
+    MAX_FILE_SIZE_MB: Number(process.env.MAX_UPLOAD_SIZE_MB) || 2048,
+    // Max time to receive a full request body (large multipart uploads).
+    REQUEST_TIMEOUT_MS:
+      Number(process.env.REQUEST_TIMEOUT_MINUTES || 60) * 60 * 1000,
+  }),
+
+  ALLOWED_VIDEO_EXTENSIONS: Object.freeze([
+    ".mp4",
+    ".mov",
+    ".mkv",
+    ".webm",
+    ".avi",
+    ".m4v",
+    ".mpeg",
+    ".mpg",
+    ".flv",
+    ".wmv",
+    ".3gp",
+  ]),
+
+  ALLOWED_IMAGE_EXTENSIONS: Object.freeze([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+    ".avif",
+  ]),
+
+  // Cloudflare Stream: max duration reserved per direct upload (6h is CF max).
+  STREAM_MAX_DURATION_SECONDS: 21600,
 };

@@ -8,7 +8,7 @@ const { createMovie } = require("../../services/movies");
 const { validateCreateMovie } = require("../../validator/movies");
 
 exports.create = asyncWrapper(async (req, res) => {
-  const { error, value } = validateCreateMovie(req.body);
+  const { error, value } = validateCreateMovie(req.body || {});
   if (error) throwError(422, cleanJoiError(error));
   const image = req.files?.image;
   const video = req.files?.video;
