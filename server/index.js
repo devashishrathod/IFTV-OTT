@@ -1,7 +1,7 @@
 require("dotenv").config();
 const os = require("os");
 const express = require("express");
-const cors = require("cors");
+//const cors = require("cors");
 const morgan = require("morgan");
 const fileUpload = require("express-fileupload");
 
@@ -14,7 +14,7 @@ const allRoutes = require("./routes");
 const app = express();
 const port = process.env.PORT || 8500;
 
-app.use(cors());
+//app.use(cors());
 app.use(
   fileUpload({
     useTempFiles: true,
