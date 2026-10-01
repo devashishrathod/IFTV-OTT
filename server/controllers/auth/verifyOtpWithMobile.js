@@ -16,8 +16,8 @@ exports.verifyOtpWithMobile = asyncWrapper(async (req, res) => {
     "-password",
   );
   if (!user) throwError(404, "User not found with this mobile number");
-  // let result = await verifyOtpToMobile(sessionId, otp);
-  // if (result?.Status == "Success") {
+   let result = await verifyOtpToMobile(sessionId, otp);
+   if (result?.Status == "Success") {
   user.loginType = loginType;
   user.isMobileVerified = true;
   user.isLoggedIn = true;
@@ -30,7 +30,7 @@ exports.verifyOtpWithMobile = asyncWrapper(async (req, res) => {
     user,
     token,
   });
-  // } else {
-  //   return res.status(400).json({ success: false, msg: "Invalid OTP" });
-  // }
+   } else {
+    return res.status(400).json({ success: false, msg: "Invalid OTP" });
+   }
 });
