@@ -6,6 +6,7 @@ Last update: 2026-10-10 · Status: **S1 (mobile OTP) poora theek ✅. B1 sirf mo
 | --- | --- |
 | 2026-10-10 | Mobile OTP: 2factor ka SMS bhejna aur verify karna wapas chalu hua (`loginOrSignInWithMobile.js`, `verifyOtpWithMobile.js`). Review mein naye issues mile: S1a (sessionId mobile se juda nahi, ab bhi bypass), S1b (galat OTP par 500), S1c (`msg` envelope), S1d (API key logs mein) |
 | 2026-10-10 | ✅ S1a, S1b, S1c aur S1d theek hue, saath mein mobile route ka B1. Files: `controllers/auth/loginOrSignInWithMobile.js`, `controllers/auth/verifyOtpWithMobile.js`, `helpers/twoFactor/sendOtpToMobile.js`, `helpers/twoFactor/verifyOtpToMobile.js`, `models/User.js` (`otp.sessionId` joda). Nakli 2factor aur test DB par 23/23 test pass (attacker wala S1a scenario bhi). Asli 2factor par nakli session se helper ka jawab check kiya |
+| 2026-10-10 | Naya section *Future: missing APIs* joda. F1: Support assign dropdown ke liye admin/staff list API |
 
 Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman collection ban rahi thi (`server/postman/IFTV.postman_collection.json`). Collection ke descriptions mein bhi ye ⚠️ ke saath likhe hain.
 
@@ -122,6 +123,12 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 | X7 | Path ka style ek jaisa nahi: movies mein `/:id/get`, baaki mein `/get/:id`; subscriptions mein `get-all`, baaki mein `getAll` | Naya version aaye tab ek jaisa karna. Abhi badlenge to frontend toot jayega |
 | X8 | `ALLOWED_IMAGE_EXTENSIONS` sirf movies mein use hota hai | Categories, subcategories, banners aur users mein bhi lagana |
 
+## Future: missing APIs (frontend ko chahiye)
+
+| ID | Kya chahiye | Kyun | Abhi ka jugaad | Idea |
+| --- | --- | --- | --- | --- |
+| F1 | Admin/staff users ki list ka API, jaise `GET /users/admin/agents` (admin + staff only) | Admin panel mein Support ticket ke "Assign to" dropdown ke liye. `PUT /supports/admin/update/:id` mein `assignedTo` ke liye admin/staff ka `_id` chahiye | Frontend doc mein "Assign to me" likha hai, yaani login response ka `data.user._id` | `role in [admin, staff]` aur `isDeleted: false` wale users. Sirf `_id, name, email, role` bhejo. Route par `validateRoles(ADMIN, STAFF)`. Banne ke baad `docs/frontend/admin-panel-api.md` (section 2.5) aur Postman update karna |
+
 ## Doosri docs mein pehle se likhe kaam
 
 - Purani Cloudinary images ka migration aur Cloudinary hatana: `cloudflare-images-plan.md`
@@ -131,4 +138,5 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 
 Har group ke liye pehle chhota plan aur badalne wali files ki list dikhayenge, aapki approval ke baad code karenge. Har fix ke saath:
 - Postman collection ke us request ka description aur examples update karna.
+- Frontend docs (`docs/frontend/`) mein jis team ko wo API milta hai, uske doc ka section update karna.
 - Is doc mein us ID ke aage ✅ aur fix ki tarikh likhna.
