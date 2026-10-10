@@ -162,6 +162,67 @@ module.exports = {
     MAX_CONTACT_US_PER_EMAIL_PER_DAY: 3,
   }),
 
+  // One subscription period a user holds (models/UserSubscription.js)
+  USER_SUBSCRIPTION_STATUSES: Object.freeze({
+    ACTIVE: "active",
+    SCHEDULED: "scheduled",
+    EXPIRED: "expired",
+    UPGRADED: "upgraded",
+    CANCELLED: "cancelled",
+  }),
+
+  SUBSCRIPTION_SOURCES: Object.freeze({
+    PURCHASE: "purchase",
+    RENEWAL: "renewal",
+    UPGRADE: "upgrade",
+    ADMIN_GRANT: "admin_grant",
+  }),
+
+  PAYMENT_PURPOSES: Object.freeze({
+    NEW: "new",
+    RENEWAL: "renewal",
+    UPGRADE: "upgrade",
+  }),
+
+  PAYMENT_STATUSES: Object.freeze({
+    CREATED: "created",
+    PAID: "paid",
+    FAILED: "failed",
+    EXPIRED: "expired",
+  }),
+
+  PAYMENT_PROVIDERS: Object.freeze({
+    RAZORPAY: "razorpay",
+  }),
+
+  PAYMENT_LIMITS: Object.freeze({
+    CURRENCY: "INR",
+    // Razorpay does not accept orders below ₹1
+    MIN_AMOUNT_PAISE: 100,
+    ORDER_EXPIRY_MINUTES: 30,
+    MAX_FAILURE_REASON_LENGTH: 500,
+  }),
+
+  SUBSCRIPTION_LIMITS: Object.freeze({
+    MAX_SCHEDULED: 1,
+    // Expiry reminder mails, days before the plan ends
+    REMINDER_DAYS: Object.freeze([3, 1]),
+    MAX_GRANT_DAYS: 3650,
+    MAX_NOTE_LENGTH: 500,
+    MAX_PLAN_LINKS_PER_MOVIE: 50,
+  }),
+
+  MOVIE_ACCESS_TYPES: Object.freeze({
+    FREE: "free",
+    PAID: "paid",
+  }),
+
+  MOVIE_LOCK_REASONS: Object.freeze({
+    LOGIN_REQUIRED: "login_required",
+    SUBSCRIPTION_REQUIRED: "subscription_required",
+    PLAN_NOT_INCLUDED: "plan_not_included",
+  }),
+
   GALLERY_MEDIA_TYPES: Object.freeze({
     IMAGE: "image",
     GIF: "gif",
