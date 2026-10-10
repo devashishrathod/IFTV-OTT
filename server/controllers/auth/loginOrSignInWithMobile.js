@@ -4,6 +4,9 @@ const { ROLES, LOGIN_TYPES } = require("../../constants");
 const { asyncWrapper, sendSuccess, throwError } = require("../../utils");
 const { sendOtpToMobile } = require("../../helpers/twoFactor");
 
+// Upper bound on our side; 2factor also expires its OTPs.
+const MOBILE_OTP_EXPIRY_MS = 10 * 60 * 1000;
+
 exports.loginOrSignInWithMobile = asyncWrapper(async (req, res) => {
   let { mobile, role, loginType } = req.body;
   if (!mobile) throwError(422, "Mobile number is required");
@@ -15,18 +18,27 @@ exports.loginOrSignInWithMobile = asyncWrapper(async (req, res) => {
   );
   if (!user) {
     isFirst = true;
-    user = User.create({ mobile, role, loginType, password: defaultPassword });
+    user = await User.create({
+      mobile,
+      role,
+      loginType,
+      password: defaultPassword,
+    });
   }
-  // const otpData = await sendOtpToMobile(mobile);
+  const otpData = await sendOtpToMobile(mobile);
+  // Remember which 2factor session belongs to this user, so verify can
+  // reject a session/OTP that was sent to a different number.
+  user.otp = {
+    sessionId: otpData.Details,
+    expiresAt: new Date(Date.now() + MOBILE_OTP_EXPIRY_MS),
+  };
+  await user.save();
   return sendSuccess(
     res,
     200,
     "OTP has been sent to your Mobile. Please check your inbox.",
     {
-      otpData: {
-        Status: "Success",
-        Details: "0554ea45-d0a1-454f-8c2e-0fd3a9ddfe3c",
-      },
+      otpData,
       isFirst,
     },
   );

@@ -9,7 +9,7 @@
   "item": [
     {
       "name": "Auth",
-      "description": "Login, sign-up and OTP flows. **No auth header needed** on any route here. All bodies are **raw JSON**.\n\nThe token returned in `data.token` is a JWT valid for **7 days** (payload `{ id, role, name, email }`). Send it as `Authorization: Bearer <token>`. The requests below save it to `{{userToken}}` / `{{adminToken}}` automatically.\n\n**No Joi validation** in this module: only manual checks. Bad model values (invalid email, role or loginType) come back as **500** `User validation failed: ...`. Sending no body at all also gives **500** `Cannot destructure property '<field>' of 'req.body' as it is undefined.`\n\n⚠️ Known issues to fix later:\n- `role` is taken from the body, so anyone can register or log in as `admin` or `staff`.\n- `verify-otp-mobile` never checks the OTP; any value works.\n- `register` and `login` return the password hash.\n- OTP-created users all get `DEFAULT_PASSWORD`.\n- A new user with an invalid email/role on the OTP routes gets 200, but the unawaited `User.create` then crashes the server.",
+      "description": "Login, sign-up and OTP flows. **No auth header needed** on any route here. All bodies are **raw JSON**.\n\nThe token returned in `data.token` is a JWT valid for **7 days** (payload `{ id, role, name, email }`). Send it as `Authorization: Bearer <token>`. The requests below save it to `{{userToken}}` / `{{adminToken}}` automatically.\n\n**No Joi validation** in this module: only manual checks. Bad model values (invalid email, role or loginType) come back as **500** `User validation failed: ...`. Sending no body at all also gives **500** `Cannot destructure property '<field>' of 'req.body' as it is undefined.`\n\n⚠️ Known issues to fix later:\n- `role` is taken from the body, so anyone can register or log in as `admin` or `staff`.\n- `register` and `login` return the password hash.\n- OTP-created users all get `DEFAULT_PASSWORD`.\n- A new user with an invalid email/role on the OTP routes gets 200, but the unawaited `User.create` then crashes the server.",
       "item": [
         {
           "name": "Register",
@@ -1399,11 +1399,11 @@
                 "loginOrSignin-with-mobile"
               ]
             },
-            "description": "Creates the user if new (`isFirst: true`). ⚠️ **SMS sending is currently disabled**: the 2factor call is commented out, and `data.otpData.Details` (the `sessionId` for verify) is a **hard-coded constant**.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| mobile | number | yes | digits only (non-numeric → 500 cast error) |\n| role | enum | no | `admin` | `staff` | `user` (default `user`) |\n| loginType | enum | no | `email` | `mobile` | `google` | `password` | `other` (default `mobile`) |\n\n| Status | When |\n| --- | --- |\n| 200 | OTP \"sent\" |\n| 422 | `Mobile number is required` |\n| 500 | non-numeric mobile |"
+            "description": "Sends a real OTP SMS through **2factor.in** and returns `data.otpData`. **`data.otpData.Details` is the `sessionId`**: the next request saves it to `{{otpSessionId}}` automatically. The session is also stored on the user, with a **10-minute** expiry. If no user exists for `{ mobile, role }`, one is created first (`isFirst: true`). Asking again replaces the previous session.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| mobile | number | yes | 10-digit mobile |\n| role | enum | no | `admin` | `staff` | `user` (default `user`) |\n| loginType | enum | no | `email` | `mobile` | `google` | `password` | `other` (default `mobile`), used only for new users |\n\n| Status | message |\n| --- | --- |\n| 200 | OTP has been sent to your Mobile. Please check your inbox. |\n| 422 | `Mobile number is required` |\n| 400 | `Could not send OTP to this mobile number` (2factor rejected it: bad number, no credit, bad key; details are in the server log) |\n| 502 | `OTP service is unavailable. Please try again.` (2factor down or unreachable) |\n| 500 | invalid `role`/`loginType` for a new user, or non-numeric mobile (model validation) |\n\n⚠️ Every call sends a paid SMS. There is no resend throttle yet (known issue S8)."
           },
           "response": [
             {
-              "name": "200 OTP sent",
+              "name": "200 OTP sent (existing user)",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -1443,7 +1443,50 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"success\": true,\n  \"message\": \"OTP has been sent to your Mobile. Please check your inbox.\",\n  \"data\": {\n    \"otpData\": {\n      \"Status\": \"Success\",\n      \"Details\": \"0554ea45-d0a1-454f-8c2e-0fd3a9ddfe3c\"\n    },\n    \"isFirst\": false\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP has been sent to your Mobile. Please check your inbox.\",\n  \"data\": {\n    \"otpData\": {\n      \"Status\": \"Success\",\n      \"Details\": \"7c0f6a2e-3b1d-4e5f-9a8b-1c2d3e4f5a6b\"\n    },\n    \"isFirst\": false\n  }\n}"
+            },
+            {
+              "name": "200 OTP sent (new user)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/loginOrSignin-with-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "loginOrSignin-with-mobile"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP has been sent to your Mobile. Please check your inbox.\",\n  \"data\": {\n    \"otpData\": {\n      \"Status\": \"Success\",\n      \"Details\": \"7c0f6a2e-3b1d-4e5f-9a8b-1c2d3e4f5a6b\"\n    },\n    \"isFirst\": true\n  }\n}"
             },
             {
               "name": "422 Mobile missing",
@@ -1489,7 +1532,7 @@
               "body": "{\n  \"success\": false,\n  \"message\": \"Mobile number is required\",\n  \"error\": {}\n}"
             },
             {
-              "name": "500 Non-numeric mobile",
+              "name": "400 2factor rejected the number",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -1501,7 +1544,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"mobile\": \"abc\"\n}",
+                  "raw": "{\n  \"mobile\": 12345\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1519,8 +1562,8 @@
                   ]
                 }
               },
-              "status": "Internal Server Error",
-              "code": 500,
+              "status": "Bad Request",
+              "code": 400,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1529,7 +1572,63 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Cast to Number failed for value \\\"abc\\\" (type string) at path \\\"mobile\\\" for model \\\"User\\\"\",\n  \"error\": {}\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Could not send OTP to this mobile number\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "502 2factor unavailable",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/loginOrSignin-with-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "loginOrSignin-with-mobile"
+                  ]
+                }
+              },
+              "status": "Bad Gateway",
+              "code": 502,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP service is unavailable. Please try again.\",\n  \"error\": {}\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let res; try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const v = res.data.otpData.Details; if (pm.response.code < 300 && v) { pm.collectionVariables.set(\"otpSessionId\", v); console.log(\"saved otpSessionId =\", v); } } catch (e) {}"
+                ]
+              }
             }
           ]
         },
@@ -1546,7 +1645,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"0554ea45-d0a1-454f-8c2e-0fd3a9ddfe3c\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
+              "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1563,7 +1662,7 @@
                 "verify-otp-mobile"
               ]
             },
-            "description": "Logs the user in and sets `isMobileVerified`. ⚠️ **The OTP is not verified right now** (the check is commented out): any non-empty `otp` and `sessionId` work. Method is **PUT**.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| sessionId | string | yes | `data.otpData.Details` from the send-OTP call (currently ignored) |\n| otp | string | yes | currently ignored |\n| mobile | number | yes |  |\n| role | enum | no | `admin` | `staff` | `user` (default `user`) |\n| loginType | enum | no | `email` | `mobile` | `google` | `password` | `other` (default `mobile`) |\n| currentScreen | string | no | uppercased |\n| fcmToken | string | no |  |\n\n| Status | When |\n| --- | --- |\n| 200 | OTP Verification successful |\n| 422 | `Please fill all required fields` |\n| 404 | `User not found with this mobile number` |"
+            "description": "Logs the user in after checking the OTP. Method is **PUT**.\n1. The `sessionId` must be the **latest one sent to this mobile**; a session/OTP from another phone is rejected.\n2. It must be within the 10-minute window.\n3. The OTP is checked with 2factor.\n\nOn success it sets `isMobileVerified`, `isLoggedIn`, `isOnline` and `loginType` (plus `currentScreen`/`fcmToken` if sent) and clears the session, so it can be used only once. Status codes match **Verify email OTP**.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| sessionId | string | yes | `data.otpData.Details` from send OTP (`{{otpSessionId}}`) |\n| otp | string or number | yes | the 6-digit code from the SMS |\n| mobile | number | yes | the number the OTP was sent to |\n| role | enum | no | `admin` | `staff` | `user` (default `user`) |\n| loginType | enum | no | default `mobile` |\n| currentScreen | string | no | uppercased |\n| fcmToken | string | no | |\n\n| Status | message |\n| --- | --- |\n| 200 | OTP Verification successful → `{ user, token }` (no password, no otp) |\n| 422 | `Please fill all required fields` (sessionId, otp or mobile missing) |\n| 404 | `User not found with this mobile number` |\n| 404 | `OTP not found` (no pending OTP, or it was already used) |\n| 403 | `Invalid OTP` (wrong code, or a sessionId that was not sent to this mobile) |\n| 410 | `OTP expired` (after 10 minutes, or 2factor says expired) |\n| 502 | `OTP service is unavailable. Please try again.` |"
           },
           "response": [
             {
@@ -1579,7 +1678,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"sessionId\": \"0554ea45-d0a1-454f-8c2e-0fd3a9ddfe3c\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1607,7 +1706,222 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"success\": true,\n  \"message\": \"OTP Verification successful\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"6705e0b1a1b2c3d4e5f60701\",\n      \"name\": \"john doe\",\n      \"role\": \"user\",\n      \"loginType\": \"mobile\",\n      \"email\": \"john@example.com\",\n      \"mobile\": 9876543210,\n      \"lastActivity\": \"2026-10-10T08:00:00.000Z\",\n      \"currentScreen\": \"HOME_SCREEN\",\n      \"isEmailVerified\": false,\n      \"isMobileVerified\": true,\n      \"isSignUpCompleted\": false,\n      \"isOnBoardingCompleted\": false,\n      \"isLoggedIn\": true,\n      \"isOnline\": true,\n      \"isActive\": true,\n      \"createdAt\": \"2026-10-10T08:00:00.000Z\",\n      \"updatedAt\": \"2026-10-10T08:00:00.000Z\"\n    },\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDVlMGIxYTFiMmMzZDRlNWY2MDcwMSIsInJvbGUiOiJ1c2VyIn0.signature\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP Verification successful\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"6705e0b1a1b2c3d4e5f60701\",\n      \"name\": \"john doe\",\n      \"role\": \"user\",\n      \"loginType\": \"mobile\",\n      \"mobile\": 9876543210,\n      \"currentScreen\": \"HOME_SCREEN\",\n      \"isEmailVerified\": false,\n      \"isMobileVerified\": true,\n      \"isSignUpCompleted\": false,\n      \"isOnBoardingCompleted\": false,\n      \"isLoggedIn\": true,\n      \"isOnline\": true,\n      \"isActive\": true,\n      \"fcmToken\": \"fcm-device-token\",\n      \"isDeleted\": false,\n      \"createdAt\": \"2026-10-10T08:00:00.000Z\",\n      \"updatedAt\": \"2026-10-10T08:05:00.000Z\"\n    },\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDVlMGIxYTFiMmMzZDRlNWY2MDcwMSIsInJvbGUiOiJ1c2VyIn0.signature\"\n  }\n}"
+            },
+            {
+              "name": "403 Wrong OTP",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"000000\",\n  \"mobile\": 9876543210\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/verify-otp-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-otp-mobile"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid OTP\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "403 Session from another mobile",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"<session-sent-to-another-number>\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/verify-otp-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-otp-mobile"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid OTP\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "410 OTP expired",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/verify-otp-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-otp-mobile"
+                  ]
+                }
+              },
+              "status": "Gone",
+              "code": 410,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP expired\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "404 OTP not found / already used",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/verify-otp-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-otp-mobile"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP not found\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "404 Unknown mobile",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9000000000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/verify-otp-mobile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-otp-mobile"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User not found with this mobile number\",\n  \"error\": {}\n}"
             },
             {
               "name": "422 Missing fields",
@@ -1653,7 +1967,7 @@
               "body": "{\n  \"success\": false,\n  \"message\": \"Please fill all required fields\",\n  \"error\": {}\n}"
             },
             {
-              "name": "404 Unknown mobile",
+              "name": "502 2factor unavailable",
               "originalRequest": {
                 "method": "PUT",
                 "header": [
@@ -1665,7 +1979,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"sessionId\": \"0554ea45-d0a1-454f-8c2e-0fd3a9ddfe3c\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
+                  "raw": "{\n  \"sessionId\": \"{{otpSessionId}}\",\n  \"otp\": \"123456\",\n  \"mobile\": 9876543210,\n  \"role\": \"user\",\n  \"loginType\": \"mobile\",\n  \"currentScreen\": \"HOME_SCREEN\",\n  \"fcmToken\": \"fcm-device-token\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1683,8 +1997,8 @@
                   ]
                 }
               },
-              "status": "Not Found",
-              "code": 404,
+              "status": "Bad Gateway",
+              "code": 502,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1693,7 +2007,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"success\": false,\n  \"message\": \"User not found with this mobile number\",\n  \"error\": {}\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP service is unavailable. Please try again.\",\n  \"error\": {}\n}"
             }
           ],
           "event": [
@@ -11119,6 +11433,12 @@
       "value": "",
       "type": "string",
       "description": "ticket number from the last Contact Us"
+    },
+    {
+      "key": "otpSessionId",
+      "value": "",
+      "type": "string",
+      "description": "2factor sessionId, auto-saved by Login / Sign-up with mobile (send OTP)"
     }
   ]
 }

@@ -1,6 +1,11 @@
 # Known issues and bugs: fix plan
 
-Last update: 2026-10-10 · Status: **sirf list bani hai, abhi kuch fix nahi hua.** Har fix se pehle plan confirm karke hi code badlega.
+Last update: 2026-10-10 · Status: **S1 (mobile OTP) poora theek ✅. B1 sirf mobile route mein theek hua. Baaki sab abhi khula hai.** Har fix se pehle plan confirm karke hi code badlega.
+
+| Tarikh | Kya badla |
+| --- | --- |
+| 2026-10-10 | Mobile OTP: 2factor ka SMS bhejna aur verify karna wapas chalu hua (`loginOrSignInWithMobile.js`, `verifyOtpWithMobile.js`). Review mein naye issues mile: S1a (sessionId mobile se juda nahi, ab bhi bypass), S1b (galat OTP par 500), S1c (`msg` envelope), S1d (API key logs mein) |
+| 2026-10-10 | ✅ S1a, S1b, S1c aur S1d theek hue, saath mein mobile route ka B1. Files: `controllers/auth/loginOrSignInWithMobile.js`, `controllers/auth/verifyOtpWithMobile.js`, `helpers/twoFactor/sendOtpToMobile.js`, `helpers/twoFactor/verifyOtpToMobile.js`, `models/User.js` (`otp.sessionId` joda). Nakli 2factor aur test DB par 23/23 test pass (attacker wala S1a scenario bhi). Asli 2factor par nakli session se helper ka jawab check kiya |
 
 Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman collection ban rahi thi (`server/postman/IFTV.postman_collection.json`). Collection ke descriptions mein bhi ye ⚠️ ke saath likhe hain.
 
@@ -12,7 +17,7 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 
 ## Sabse pehle kya (suggested order)
 
-1. P0 security: S1 se S7. Inme se S1, S2 aur S6 sabse zaroori hain.
+1. P0 security: S2 se S9 (S1 ho gaya ✅). Inme se S2 aur S6 sabse zaroori hain.
 2. P1 stability: B1 se B5.
 3. P2 bugs, module ke hisaab se.
 4. P3 cleanup.
@@ -23,7 +28,13 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 
 | ID | Issue | Kahan | Asar | Fix ka idea |
 |---|---|---|---|---|
-| S1 | `verify-otp-mobile` OTP check hi nahi karta. `loginOrSignin-with-mobile` SMS nahi bhejta, aur `sessionId` hard-coded hai (`0554ea45-...`) | `controllers/auth/verifyOtpWithMobile.js`, `controllers/auth/loginOrSignInWithMobile.js` (2factor ki calls comment out hain) | Registered mobile number pata ho to bina OTP 7 din ka token mil jaata hai | 2factor ka send aur verify dobara chalu karna, ya email jaisa apna OTP (code, expiry, attempts) lagana. OTP galat ho to 400/403 dena |
+| S1 | ✅ **Theek hua (2026-10-10).** Pehle `verify-otp-mobile` OTP check hi nahi karta tha, aur `sessionId` hard-coded tha. Ab 2factor se asli SMS jaata hai, aur verify 2factor se OTP check karta hai (S1a se S1d bhi theek) | `controllers/auth/verifyOtpWithMobile.js`, `controllers/auth/loginOrSignInWithMobile.js` | | |
+| S1a | ✅ **Theek hua.** Pehle `sessionId` mobile number se juda nahi tha: kisi aur ke phone ka session aur OTP doosre ke `mobile` ke saath chal jaata tha | `verifyOtpWithMobile.js`, `loginOrSignInWithMobile.js`, `models/User.js` | | **Kiya gaya:** send ke waqt 2factor ka `Details` (sessionId) aur 10 minute ki expiry `user.otp = { sessionId, expiresAt }` mein save hoti hai. Verify mein session isi user ka na ho to `403 Invalid OTP`, koi pending session na ho to `404 OTP not found`, aur 10 minute baad `410 OTP expired`. Sahi verify ke baad `otp` clear ho jaata hai, isliye ek session dobara use nahi ho sakta |
+| S1b | ✅ **Theek hua.** Pehle 2factor ke HTTP 400 (galat ya expire hua OTP) ko axios throw karta tha, aur user ko 500 milta tha | `helpers/twoFactor/verifyOtpToMobile.js` | | **Kiya gaya:** helper mein `validateStatus: () => true` laga diya, ab 4xx ko normal jawab maana jaata hai. Galat OTP par `403 Invalid OTP`, aur 2factor `OTP Expired` bole to `410 OTP expired`. 2factor 5xx de ya network error ho to `502 OTP service is unavailable. Please try again.` |
+| S1c | ✅ **Theek hua.** `msg` wala alag envelope hata diya | `verifyOtpWithMobile.js` | | Ab `throwError` use hota hai, isliye `{ success:false, message, error:{} }` aata hai |
+| S1d | ✅ **Theek hua.** Pehle logs mein API key wala URL jaata tha | `helpers/twoFactor/sendOtpToMobile.js`, `verifyOtpToMobile.js` | | **Kiya gaya:** ab sirf mobile, status aur 2factor ka jawab log hota hai, URL nahi. Test mein confirm kiya ki logs mein key nahi hai. Send fail hone par 2factor number reject kare to `400 Could not send OTP to this mobile number`, aur 2factor down ho to `502` |
+
+**Mobile OTP ke status codes ab email OTP jaise hain:** `404 OTP not found`, `410 OTP expired` aur `403 Invalid OTP`. Pichle plan mein galat OTP ke liye 400 likha tha, lekin dono flows ek jaise rahein isliye 403 rakha. Purane build mein jinhone OTP mangwaya tha (jab sessionId save nahi hota tha), unhe ek baar OTP dobara mangwana hoga.
 | S2 | `role` request body se liya jaata hai | `controllers/auth/register.js`, `loginOrSignInWithEmail.js`, `loginOrSignInWithMobile.js`, `login.js` | Koi bhi khud ko `admin` ya `staff` bana sakta hai | Public routes par role hamesha `user`. Admin ya staff sirf admin API ya seed script se banein |
 | S3 | Register aur login ke response mein password hash aata hai. Login mein pending `otp` bhi aa sakta hai | `controllers/auth/register.js`, `controllers/auth/login.js`; `models/User.js` mein `password` par `select:false` nahi hai | Hash aur OTP leak | Model mein `password` aur `otp` par `select:false` lagana, ya response mein `toObject()` karke ye fields hata dena |
 | S4 | OTP se bane saare users ka password `DEFAULT_PASSWORD` hai (ek hi value) | `loginOrSignInWithEmail.js`, `loginOrSignInWithMobile.js` | Ye value jaanne wala `/auth/login` se kisi bhi OTP user ki tarah login kar sakta hai | Har user ke liye random password, ya OTP users ke liye password login band (loginType check) |
@@ -37,7 +48,7 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 
 | ID | Issue | Kahan | Asar | Fix ka idea |
 |---|---|---|---|---|
-| B1 | OTP routes mein naye user ke liye `User.create` ko `await` nahi kiya jaata | `loginOrSignInWithEmail.js`, `loginOrSignInWithMobile.js` | Galat email, role ya loginType par response 200 aata hai, phir unhandled rejection se **server process crash** ho jaata hai | `await` lagana. `index.js` mein `unhandledRejection` handler bhi |
+| B1 | OTP routes mein naye user ke liye `User.create` ko `await` nahi kiya jaata. ✅ **Mobile route mein theek hua (2026-10-10):** ab `await` hota hai, galat role par error response aata hai aur server chalta rehta hai (test kiya). ❌ **Email route (`loginOrSignInWithEmail.js`) mein abhi bhi baaki hai** | `loginOrSignInWithEmail.js` | Galat email, role ya loginType par response 200 aata hai, phir unhandled rejection se **server process crash** ho jaata hai | `await` lagana. `index.js` mein `unhandledRejection` handler bhi |
 | B2 | Body na ho to 500 aata hai: `Cannot destructure property ... of undefined` | Auth ke saare routes; category, subCategory aur banner create; subscription create | Galat status code aur ganda message | Controller mein `req.body ?? {}`, ya ek middleware jo body na ho to `{}` set kare |
 | B3 | `search` aur `name` filter regex escape nahi hote | `services/categories/getAllCategories.js`, `services/subCategories/...getAll`, `services/banners/getAllBanners.js`, `services/subscriptions/getAllSubscription.js` | `search=(` jaisa input dene par 500 | `escapeRegex` lagana (`services/supports/ticketHelpers.js` mein pehle se hai, use shared util bana sakte hain) |
 | B4 | `deleteStreamVideo` Cloudflare ka 404 aane par throw karta hai | `services/cloudflare/stream.js` | Video Cloudflare se pehle hi hat chuka ho to banner ya movie delete hamesha 404 deta hai, aur record kabhi delete nahi hota | `validateStatus` lagana aur 404 ko "pehle hi delete hai, theek hai" maanna |
