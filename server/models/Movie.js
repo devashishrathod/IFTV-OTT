@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const { DEFAULT_IMAGES } = require("../constants");
-const { categoryField } = require("./validObjectId");
+const { DEFAULT_IMAGES, MOVIE_ACCESS_TYPES } = require("../constants");
+const { categoryField, subscriptionField } = require("./validObjectId");
 
 const movieSchema = new mongoose.Schema(
   {
@@ -23,6 +23,14 @@ const movieSchema = new mongoose.Schema(
     durationInSeconds: { type: Number },
     video: { type: String, default: null },
     image: { type: String, default: DEFAULT_IMAGES.MOVIE },
+    // Movies saved before this field existed have no value and count as free
+    accessType: {
+      type: String,
+      enum: [...Object.values(MOVIE_ACCESS_TYPES)],
+      default: MOVIE_ACCESS_TYPES.FREE,
+    },
+    // Paid movies only: plans that include it. Empty = any active plan.
+    allowedPlans: { type: [{ ...subscriptionField }], default: [] },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
   },

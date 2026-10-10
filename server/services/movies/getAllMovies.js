@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Movie = require("../../models/Movie");
 const { pagination, validateObjectId } = require("../../utils");
+const { MOVIE_ACCESS_TYPES } = require("../../constants");
 
 const toRegex = (value, exact = false) => {
   const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -22,12 +23,19 @@ exports.getAllMovies = async (query) => {
     sortBy = "createdAt",
     sortOrder = "desc",
     isActive,
+    accessType,
   } = query;
   page = page ? Number(page) : 1;
   limit = limit ? Number(limit) : 10;
   const matchStage = { isDeleted: false };
   if (typeof isActive !== "undefined") {
     matchStage.isActive = isActive === "true" || isActive === true;
+  }
+  if (accessType === MOVIE_ACCESS_TYPES.PAID) {
+    matchStage.accessType = MOVIE_ACCESS_TYPES.PAID;
+  } else if (accessType === MOVIE_ACCESS_TYPES.FREE) {
+    // Movies saved before accessType existed have no value: they are free
+    matchStage.accessType = { $ne: MOVIE_ACCESS_TYPES.PAID };
   }
   if (title) matchStage.title = toRegex(title.trim(), true);
   if (casts) matchStage.casts = { $regex: toRegex(casts) };

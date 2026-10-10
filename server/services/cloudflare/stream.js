@@ -241,3 +241,4 @@ exports.deleteStreamVideo = async (urlOrUid) => {
 
 exports.isCloudflareStreamUrl = isCloudflareStreamUrl;
 exports.extractStreamUid = extractStreamUid;
+exports.isRetryableError = isRetryableError;
