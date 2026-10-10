@@ -113,4 +113,52 @@ module.exports = {
 
   // Cloudflare Stream: max duration reserved per direct upload (6h is CF max).
   STREAM_MAX_DURATION_SECONDS: 21600,
+
+  SUPPORT_SOURCES: Object.freeze({
+    TICKET: "ticket",
+    CONTACT_US: "contact_us",
+  }),
+
+  SUPPORT_CATEGORIES: Object.freeze({
+    PAYMENT: "payment",
+    SUBSCRIPTION: "subscription",
+    PLAYBACK: "playback",
+    ACCOUNT: "account",
+    CONTENT_REQUEST: "content_request",
+    FEEDBACK: "feedback",
+    OTHER: "other",
+  }),
+
+  SUPPORT_STATUSES: Object.freeze({
+    OPEN: "open",
+    IN_PROGRESS: "in_progress",
+    RESOLVED: "resolved",
+    CLOSED: "closed",
+  }),
+
+  SUPPORT_PRIORITIES: Object.freeze({
+    LOW: "low",
+    MEDIUM: "medium",
+    HIGH: "high",
+  }),
+
+  SUPPORT_LIMITS: Object.freeze({
+    MAX_ATTACHMENTS: 3,
+    MAX_ATTACHMENT_SIZE_MB: 5,
+    ALLOWED_ATTACHMENT_EXTENSIONS: Object.freeze([
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+    ]),
+    ALLOWED_ATTACHMENT_MIME_TYPES: Object.freeze([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]),
+    MAX_SUBJECT_LENGTH: 150,
+    MAX_MESSAGE_LENGTH: 2000,
+    MAX_OPEN_TICKETS_PER_USER: 5,
+    MAX_CONTACT_US_PER_EMAIL_PER_DAY: 3,
+  }),
 };

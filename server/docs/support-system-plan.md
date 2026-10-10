@@ -1,6 +1,6 @@
 # Support system: plan
 
-Last update: 2026-10-10 · Status: **design approve hua, code Cloudflare Images ke end-to-end test ke baad shuru hoga**
+Last update: 2026-10-10 · Status: **code poora hai (branch `support-system`), 58/58 end-to-end tests pass. Commit aur app/web/admin integration baaki hai.** Code mein kya hua aur plan se kya alag hai, wo neeche *Implementation status* mein hai.
 
 Support mein aane ke do raaste hain:
 
@@ -191,6 +191,69 @@ Koi naya env variable aur koi naya npm package nahi chahiye.
 - [ ] Limits theek hain: 3 attachments, 5 MB, 5 khule tickets, Contact Us 3 baar har 24 ghante
 - [ ] Staff ko delete ka haq dena hai ya sirf admin ko
 - [ ] Code shuru karne ki go-ahead
+
+## Implementation status (2026-10-10)
+
+Saari files banai, aur saare 12 routes chal rahe hain. Plan se ye cheezein thodi alag hain ya plan mein nahi thi:
+
+| Baat | Kya kiya |
+| --- | --- |
+| Nayi helper file | `helpers/nodeMailer/supportMailLayout.js`: teeno support mails ka layout aur bhejne ka code. User ka likha text HTML mein escape hota hai, taaki koi mail mein HTML ya script na ghusa sake |
+| Nayi helper file | `services/supports/ticketHelpers.js`: ticketId se create (takraav par dobara koshish), status aur uske timestamps, user view, ticket dhoondhna, regex escape, date range |
+| Attachments ka field naam | `attachments` aur `attachments[]` dono chalte hain |
+| Closed ticket par admin reply | 400 aata hai. Pehle `admin/update` se status badal kar ticket dobara kholna hoga |
+| `assignedTo` | Sirf active admin ya staff user ho sakta hai, warna 422. `null` bhejne se assign hata jaata hai |
+| User reply par admin ko mail | Nahi jaata. Reply admin inbox mein `lastReplyAt` ke saath dikhta hai |
+| Khaali list (`/my`, `admin/getAll`) | 404 `No any supportticket found` aata hai. Repo ka `pagination` util yahi karta hai, banners aur movies jaisa. App use "koi ticket nahi" ki tarah dikhaye |
+| Contact Us ka response | Sirf `ticketId`, `status` aur `createdAt` lautta hai, poora ticket nahi |
+| `admin/getAll` ka sort | `sortBy` mein sirf `createdAt`, `updatedAt` ya `lastReplyAt` chalta hai |
+| Search | Regex ke special characters escape hote hain, isliye `(.*` jaisa input server crash nahi karta |
+
+### End-to-end test (2026-10-10): 58/58 pass
+
+- Test ek alag database (`iftv_support_e2e_test`) par chala, jo test ke baad drop ho gaya. Asli `Iftv-ott` database mein kuch nahi likha gaya.
+- Emails ek nakli mailer se pakdi gayi, koi asli mail nahi gayi.
+- Attachments asli Cloudflare par upload hue, aur test ke baad teeno delete ho gaye.
+
+Kya kya check hua:
+
+- **Contact Us:**
+  - Sahi request par 201, aur ticket number ka format sahi.
+  - Galat email ya category par 422.
+  - Honeypot bhara ho to 201 aata hai, lekin kuch save nahi hota.
+  - Ek email se 4th request par 429.
+  - Har request par do mails: visitor ko aur support team ko.
+  - Mail mein user ka HTML escape hota hai.
+- **User tickets:**
+  - Bina token 401. `platform` na ho to 422.
+  - 4 attachments, `.txt` file ya 6MB file par 422.
+  - 2 attachments ke saath ticket bana, aur dono ke URL browser mein khule.
+  - Name aur email account se aaye. User ko `adminNote` aur `assignedTo` nahi dikhte.
+  - `/my`, `get`, kisi aur user ka ticket (404), aur galat id (422).
+- **Admin:**
+  - Normal user ko 403. Staff ko access milta hai.
+  - Saare filters, search aur sort chalte hain.
+  - Reply karne par status `in_progress` hota hai, sender ki details aati hain, aur user ko mail jaata hai.
+  - Update se priority, note aur assign badalte hain. Normal user ko assign karne par 422.
+  - Resolve par mail jaata hai.
+  - User ke reply se ticket wapas `open` hota hai.
+  - Close, dobara close (400), aur closed ticket par user ya admin ka reply (400).
+  - Contact Us par staff ka reply aur resolve ek hi mail mein visitor ko jaata hai.
+- **Limits aur baaki:**
+  - 6th khula ticket banane par 429.
+  - Stats ki ginti sahi aati hai.
+  - Soft delete ke baad admin aur user dono ko 404.
+
+### Postman
+
+Saare 12 APIs `server/postman/IFTV.postman_collection.json` ke **Supports** folder mein hain, teen sub-folders mein: Public, User aur Admin. Har request ke saath body, enums, limits, error cases aur asli recorded example responses hain.
+
+### Abhi baaki
+
+- [ ] Code review aur commit
+- [ ] App aur web: My Tickets aur ticket form (login ke saath), aur web ka Contact Us form (chhupe hue `website` field ke saath)
+- [ ] Admin panel: inbox, ticket ki detail, reply, update aur stats ka badge
+- [ ] Ek asli Gmail se mail ka test (local test mein mail nakli mailer se pakdi gayi thi)
 
 ## Baad ke kaam
 
