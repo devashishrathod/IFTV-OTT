@@ -10,6 +10,7 @@ const {
   getLinkableStreamVideo,
   deleteMedia,
 } = require("./movieMedia");
+const { resolveAccessFields } = require("./movieAccessFields");
 
 exports.createMovie = async (payload, image, video) => {
   let {
@@ -29,6 +30,7 @@ exports.createMovie = async (payload, image, video) => {
   if (!category || category.isDeleted) {
     throwError(404, "Category not found");
   }
+  const accessFields = await resolveAccessFields(payload);
   title = title?.trim();
   description = description?.trim();
   languages = languages?.map((language) => language.trim().toLowerCase());
@@ -76,6 +78,7 @@ exports.createMovie = async (payload, image, video) => {
       image: uploaded.image,
       video: movieVideoUrl,
       isActive,
+      ...accessFields,
     });
   } catch (err) {
     // Don't leave orphan files on Cloudflare/Cloudinary
