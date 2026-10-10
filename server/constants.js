@@ -161,4 +161,24 @@ module.exports = {
     MAX_OPEN_TICKETS_PER_USER: 5,
     MAX_CONTACT_US_PER_EMAIL_PER_DAY: 3,
   }),
+
+  GALLERY_MEDIA_TYPES: Object.freeze({
+    IMAGE: "image",
+    GIF: "gif",
+    VIDEO: "video",
+  }),
+
+  GALLERY_LIMITS: Object.freeze({
+    MAX_TITLE_LENGTH: 150,
+    MAX_DESCRIPTION_LENGTH: 1000,
+    MAX_TAGS: 10,
+    MAX_TAG_LENGTH: 30,
+    // Cloudflare Images rejects files above 10 MB
+    MAX_IMAGE_SIZE_MB: 10,
+    MAX_BULK_FILES: 10,
+    MAX_REORDER_ITEMS: 100,
+    DEFAULT_PAGE_LIMIT: 20,
+    MAX_PAGE_LIMIT: 50,
+    MAX_ADMIN_PAGE_LIMIT: 100,
+  }),
 };

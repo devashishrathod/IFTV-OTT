@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b2542128-8962-4286-9828-01296363472c",
     "name": "IFTV",
-    "description": "IFTV-OTT backend APIs. One folder per feature. Every request has its body, enum values, limits and error cases in its description, plus saved example responses (success and edge cases).\n\n**Setup**\n1. Set `baseUrl` (collection variables) to the server you want: Render `https://iftv-ott.onrender.com/iftv-ott` or local `http://localhost:8500/iftv-ott`.\n2. Run **Auth → Login** (saves `{{userToken}}`) and **Auth → Login as admin** (saves `{{adminToken}}`).\n3. Create requests save their ids (`{{categoryId}}`, `{{movieId}}`, `{{ticketId}}`, ...) automatically, so the get/update/delete requests just work.\n\n**Response envelope**\n- Success: `{ \"success\": true, \"message\": \"...\", \"data\": ... }`\n- Error: `{ \"success\": false, \"message\": \"...\", \"error\": {} }`\n\n**Common errors on every route**\n\n| Status | When |\n| --- | --- |\n| 404 | `Invalid API`: wrong path or method |\n| 400 | malformed JSON body |\n| 413 | uploaded file over 2048 MB: `File too large. Max 2048 MB allowed; use the direct video upload for bigger files.` |\n| 422 | validation errors (messages joined with `, `) |\n| 401/403 | token missing, invalid or expired (protected routes only) |\n\n**Bodies:** use raw JSON or form-data. `x-www-form-urlencoded` is **not** parsed by the server.\n\n**Auth status today:** only `Users` and `Supports` (user + admin) check tokens. In Categories, SubCategories, Banners, Movies and Subscriptions the admin checks are commented out in code.\n\n**Images** are stored on Cloudflare Images (`https://imagedelivery.net/<hash>/<id>/public`; swap `/public` for `/thumbnail` to get a 400px version). **Videos** are stored on Cloudflare Stream (`https://<stream-domain>/<uid>/watch`).\n\n_Last updated: 2026-10-10._",
+    "description": "IFTV-OTT backend APIs. One folder per feature. Every request has its body, enum values, limits and error cases in its description, plus saved example responses (success and edge cases).\n\n**Setup**\n1. Set `baseUrl` (collection variables) to the server you want: Render `https://iftv-ott.onrender.com/iftv-ott` or local `http://localhost:8500/iftv-ott`.\n2. Run **Auth → Login** (saves `{{userToken}}`) and **Auth → Login as admin** (saves `{{adminToken}}`).\n3. Create requests save their ids (`{{categoryId}}`, `{{movieId}}`, `{{ticketId}}`, ...) automatically, so the get/update/delete requests just work.\n\n**Response envelope**\n- Success: `{ \"success\": true, \"message\": \"...\", \"data\": ... }`\n- Error: `{ \"success\": false, \"message\": \"...\", \"error\": {} }`\n\n**Common errors on every route**\n\n| Status | When |\n| --- | --- |\n| 404 | `Invalid API`: wrong path or method |\n| 400 | malformed JSON body |\n| 413 | uploaded file over 2048 MB: `File too large. Max 2048 MB allowed; use the direct video upload for bigger files.` |\n| 422 | validation errors (messages joined with `, `) |\n| 401/403 | token missing, invalid or expired (protected routes only) |\n\n**Bodies:** use raw JSON or form-data. `x-www-form-urlencoded` is **not** parsed by the server.\n\n**Auth status today:** only `Users`, `Supports` (user + admin) and `Gallery` (admin routes) check tokens. In Categories, SubCategories, Banners, Movies and Subscriptions the admin checks are commented out in code.\n\n**Images** are stored on Cloudflare Images (`https://imagedelivery.net/<hash>/<id>/public`; swap `/public` for `/thumbnail` to get a 400px version). **Videos** are stored on Cloudflare Stream (`https://<stream-domain>/<uid>/watch`).\n\n_Last updated: 2026-10-10._",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55154970"
   },
@@ -11341,6 +11341,3632 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Gallery",
+      "description": "Gallery section for app and web: admin / staff upload images, gifs and videos (with an optional poster); users see them **without login**. Plan doc: `server/docs/gallery-plan.md`.\n\n| Enum | Values |\n| --- | --- |\n| mediaType | `image` | `gif` | `video` |\n\nStorage: images, gifs and posters on Cloudflare Images (`/public` max 1920x1080, `/thumbnail` 400x400); videos on Cloudflare Stream.",
+      "item": [
+        {
+          "name": "Public (app / web, no login)",
+          "description": "No token needed. Only **active** items (`isActive: true`) are returned, sorted by `order` (ascending), then newest first.\n\n**How to show it**\n- Grid: use `thumbnailUrl` for every item.\n- Open an image / gif: `media`.\n- Play a video: web uses `media` (Stream watch URL / iframe) with `poster`; Android / iOS play `hlsUrl` in the native player.\n\n| Field | Type | Notes |\n| --- | --- | --- |\n| _id | string | gallery item id |\n| title / description | string | `\"\"` when not set |\n| mediaType | enum | `image` | `gif` | `video` |\n| media | string | image / gif: Cloudflare Images URL (`.../public`, max 1920x1080). video: Stream watch URL (`.../<uid>/watch`, web player / iframe) |\n| hlsUrl | string \\| null | video only: `.../<uid>/manifest/video.m3u8` for the app's native player (ExoPlayer / AVPlayer) |\n| poster | string \\| null | video only: the uploaded poster, or Stream's auto thumbnail when no poster was uploaded |\n| thumbnailUrl | string | small version for the grid: 400x400 `thumbnail` variant for images / gifs / posters, Stream thumbnail for videos without a poster |\n| durationInSeconds | number \\| null | video only. Can be `null` while Cloudflare is still processing a direct upload |\n| tags | string[] | lowercase |\n| order | number | lower comes first |\n| createdAt | date |  |",
+          "item": [
+            {
+              "name": "Get gallery",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/getAll?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "getAll"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "default 20, max 50"
+                    },
+                    {
+                      "key": "mediaType",
+                      "value": "video",
+                      "description": "optional: `image` | `gif` | `video`",
+                      "disabled": true
+                    },
+                    {
+                      "key": "tag",
+                      "value": "bts",
+                      "description": "optional: one tag (case-insensitive)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "teaser",
+                      "description": "optional: searches title and description",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Paginated public gallery. `data`: `{ total, totalPages, page, limit, data: [item] }`.\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery fetched successfully |\n| 404 | `No any galleryitem found` (empty page / no match; same pagination behaviour as the other modules) |\n| 422 | `Limit must be less than or equal to 50` / `Media Type must be one of [image, gif, video]` |"
+              },
+              "response": [
+                {
+                  "name": "200 Gallery (image, gif, video)",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/getAll?page=1&limit=20",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1",
+                          "description": "default 1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "20",
+                          "description": "default 20, max 50"
+                        },
+                        {
+                          "key": "mediaType",
+                          "value": "video",
+                          "description": "optional: `image` | `gif` | `video`",
+                          "disabled": true
+                        },
+                        {
+                          "key": "tag",
+                          "value": "bts",
+                          "description": "optional: one tag (case-insensitive)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "search",
+                          "value": "teaser",
+                          "description": "optional: searches title and description",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery fetched successfully\",\n  \"data\": {\n    \"total\": 7,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"data\": [\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f7\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"gif\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f6\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f5\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.295Z\"\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "200 Only videos (mediaType=video)",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/getAll?mediaType=video&limit=20",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "mediaType",
+                          "value": "video"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery fetched successfully\",\n  \"data\": {\n    \"total\": 2,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"data\": [\n      {\n        \"_id\": \"6aca4285acab35ec9bd561e8\",\n        \"title\": \"Behind the scenes (full)\",\n        \"description\": \"\",\n        \"mediaType\": \"video\",\n        \"media\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/watch\",\n        \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/manifest/video.m3u8\",\n        \"poster\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n        \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n        \"durationInSeconds\": 94,\n        \"tags\": [\n          \"bts\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:49:57.535Z\"\n      },\n      {\n        \"_id\": \"6aca4285acab35ec9bd561e4\",\n        \"title\": \"Teaser (new poster)\",\n        \"description\": \"Official teaser\",\n        \"mediaType\": \"video\",\n        \"media\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/watch\",\n        \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/manifest/video.m3u8\",\n        \"poster\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n        \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"trailer\"\n        ],\n        \"order\": 1,\n        \"createdAt\": \"2026-10-10T13:49:57.165Z\"\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "404 Empty gallery",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/getAll?page=1&limit=20",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1",
+                          "description": "default 1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "20",
+                          "description": "default 20, max 50"
+                        },
+                        {
+                          "key": "mediaType",
+                          "value": "video",
+                          "description": "optional: `image` | `gif` | `video`",
+                          "disabled": true
+                        },
+                        {
+                          "key": "tag",
+                          "value": "bts",
+                          "description": "optional: one tag (case-insensitive)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "search",
+                          "value": "teaser",
+                          "description": "optional: searches title and description",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"No any galleryitem found\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 limit over 50",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/getAll?limit=51",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "limit",
+                          "value": "51"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Limit must be less than or equal to 50\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Get gallery item",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/get/{{galleryItemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "get",
+                    "{{galleryItemId}}"
+                  ]
+                },
+                "description": "One active item.\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery item fetched successfully |\n| 404 | `Gallery item not found` (also for hidden or deleted items) |\n| 422 | `Invalid Gallery item Id` |"
+              },
+              "response": [
+                {
+                  "name": "200 Video item",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/get/{{galleryVideoItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "get",
+                        "{{galleryVideoItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item fetched successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e4\",\n    \"title\": \"Teaser (new poster)\",\n    \"description\": \"Official teaser\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/manifest/video.m3u8\",\n    \"poster\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n    \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"trailer\"\n    ],\n    \"order\": 1,\n    \"createdAt\": \"2026-10-10T13:49:57.165Z\"\n  }\n}"
+                },
+                {
+                  "name": "200 Image item",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/get/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "get",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item fetched successfully\",\n  \"data\": {\n    \"_id\": \"6aca4283acab35ec9bd561de\",\n    \"title\": \"Premiere night 2026\",\n    \"description\": \"Red carpet at the IFTV premiere\",\n    \"mediaType\": \"image\",\n    \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"hlsUrl\": null,\n    \"poster\": null,\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"events\",\n      \"red carpet\"\n    ],\n    \"order\": 2,\n    \"createdAt\": \"2026-10-10T13:49:55.893Z\"\n  }\n}"
+                },
+                {
+                  "name": "404 Hidden / deleted",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/get/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "get",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Gallery item not found\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Invalid id",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/get/123",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "get",
+                        "123"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Invalid Gallery item Id\",\n  \"error\": {}\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Admin (admin panel: admin + staff)",
+          "description": "Auth: `{{adminToken}}` (admin) or `{{staffToken}}` (staff). Normal users get 403.\n\n`mediaType` is **never sent**: the server sets it from the file (`.gif` → `gif`, image → `image`, video → `video`). Files go to Cloudflare Images (image / gif / poster) or Cloudflare Stream (video).\n\nIf any upload in a request fails, the files it already uploaded are deleted again, and nothing is saved.\n\n| Field | Type | Notes |\n| --- | --- | --- |\n| _id | string | gallery item id |\n| title / description | string | `\"\"` when not set |\n| mediaType | enum | `image` | `gif` | `video` |\n| media | string | image / gif: Cloudflare Images URL (`.../public`, max 1920x1080). video: Stream watch URL (`.../<uid>/watch`, web player / iframe) |\n| hlsUrl | string \\| null | video only: `.../<uid>/manifest/video.m3u8` for the app's native player (ExoPlayer / AVPlayer) |\n| poster | string \\| null | video only: the uploaded poster, or Stream's auto thumbnail when no poster was uploaded |\n| thumbnailUrl | string | small version for the grid: 400x400 `thumbnail` variant for images / gifs / posters, Stream thumbnail for videos without a poster |\n| durationInSeconds | number \\| null | video only. Can be `null` while Cloudflare is still processing a direct upload |\n| tags | string[] | lowercase |\n| order | number | lower comes first |\n| createdAt | date |  |\n\nAdmin responses also have `isActive`, `hasCustomPoster` (video), `createdBy` (`{ _id, name, email, role }` on get/list, the id on create/update) and `updatedAt`.",
+          "item": [
+            {
+              "name": "Direct upload (large / GB videos)",
+              "description": "Same Cloudflare Stream flow as Movies. For big videos the browser uploads **directly to Cloudflare**, not through our server. Run the steps in order:\n\n1. **Get upload URL**: saves `{{galleryVideoUid}}` and `{{galleryUploadURL}}`.\n2. **TUS PATCH** the file to `{{galleryUploadURL}}`.\n3. **Check status** until `state` is not `pendingupload`.\n4. **Create gallery video with videoUid** (optionally with a poster file).\n\nAuth: `{{adminToken}}` (admin) or `{{staffToken}}` (staff). Normal users get 403.",
+              "item": [
+                {
+                  "name": "Step 1: Get upload URL",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"fileSize\": 5368709120,\n  \"fileName\": \"bts-full.mp4\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/video/upload-url",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "video",
+                        "upload-url"
+                      ]
+                    },
+                    "description": "Raw JSON.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| fileSize | integer | yes | **exact** file size in bytes (≥ 1, max 30 GB) |\n| fileName | string | no | max 255, shown in Cloudflare |\n| maxDurationSeconds | integer | no | 1–21600 (default 21600 = 6 h) |\n\n| Status | message |\n| --- | --- |\n| 201 | Video upload URL created (`data`: `uid`, `uploadURL`, `videoUrl`) |\n| 422 | `File Size (in bytes) is required` / `Video cannot be bigger than 30 GB` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |\n| 502 | Cloudflare rejected the API token |"
+                  },
+                  "response": [
+                    {
+                      "name": "201 URL created",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"fileSize\": 5368709120,\n  \"fileName\": \"bts-full.mp4\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/video/upload-url",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "video",
+                            "upload-url"
+                          ]
+                        }
+                      },
+                      "status": "Created",
+                      "code": 201,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": true,\n  \"message\": \"Video upload URL created\",\n  \"data\": {\n    \"uid\": \"02177e024227100536932d55b6027479\",\n    \"uploadURL\": \"https://upload.example/02177e024227100536932d55b6027479\",\n    \"videoUrl\": \"https://customer-<code>.cloudflarestream.com/02177e024227100536932d55b6027479/watch\"\n  }\n}"
+                    },
+                    {
+                      "name": "422 fileSize missing",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/video/upload-url",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "video",
+                            "upload-url"
+                          ]
+                        }
+                      },
+                      "status": "Unprocessable Entity",
+                      "code": 422,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"File Size (in bytes) is required\",\n  \"error\": {}\n}"
+                    },
+                    {
+                      "name": "403 Normal user",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"fileSize\": 5368709120,\n  \"fileName\": \"bts-full.mp4\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/video/upload-url",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "video",
+                            "upload-url"
+                          ]
+                        }
+                      },
+                      "status": "Forbidden",
+                      "code": 403,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden: You do not have permission to perform this action.\",\n  \"error\": {}\n}"
+                    }
+                  ],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "let res;",
+                          "try { res = pm.response.json(); } catch (e) { res = null; }",
+                          "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "try { const v = res.data.uid; if (pm.response.code < 300 && v) { pm.collectionVariables.set('galleryVideoUid', v); console.log('saved galleryVideoUid =', v); } } catch (e) {}",
+                          "try { const v = res.data.uploadURL; if (pm.response.code < 300 && v) { pm.collectionVariables.set('galleryUploadURL', v); console.log('saved galleryUploadURL =', v); } } catch (e) {}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Step 2: Upload file to Cloudflare (TUS PATCH)",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Tus-Resumable",
+                        "value": "1.0.0",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Upload-Offset",
+                        "value": "0",
+                        "type": "text",
+                        "description": "0 for a fresh upload; to resume, use the value from the HEAD request"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/offset+octet-stream",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{galleryUploadURL}}",
+                      "host": [
+                        "{{galleryUploadURL}}"
+                      ],
+                      "path": []
+                    },
+                    "description": "Sends the video **straight to Cloudflare** (not our server), so GB files are fine. Uses `{{galleryUploadURL}}` saved by step 1. **No Authorization header.**\n\nBody: **binary**. Select the same file whose exact size you sent in step 1.\n\nCloudflare replies **204 No Content** with an `Upload-Offset` header equal to the bytes received. For big files the admin panel uses tus-js-client (5 MB+ chunks, multiples of 256 KiB) and can resume after a network drop.",
+                    "body": {
+                      "mode": "file",
+                      "file": {
+                        "src": ""
+                      }
+                    }
+                  },
+                  "response": [
+                    {
+                      "name": "204 Uploaded",
+                      "originalRequest": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Tus-Resumable",
+                            "value": "1.0.0",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Upload-Offset",
+                            "value": "0",
+                            "type": "text",
+                            "description": "0 for a fresh upload; to resume, use the value from the HEAD request"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/offset+octet-stream",
+                            "type": "text"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{galleryUploadURL}}",
+                          "host": [
+                            "{{galleryUploadURL}}"
+                          ],
+                          "path": []
+                        }
+                      },
+                      "status": "No Content",
+                      "code": 204,
+                      "_postman_previewlanguage": "text",
+                      "header": [
+                        {
+                          "key": "Upload-Offset",
+                          "value": "46901252"
+                        },
+                        {
+                          "key": "Tus-Resumable",
+                          "value": "1.0.0"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": ""
+                    }
+                  ]
+                },
+                {
+                  "name": "Step 2b (optional): Check uploaded offset (resume)",
+                  "request": {
+                    "method": "HEAD",
+                    "header": [
+                      {
+                        "key": "Tus-Resumable",
+                        "value": "1.0.0",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{galleryUploadURL}}",
+                      "host": [
+                        "{{galleryUploadURL}}"
+                      ],
+                      "path": []
+                    },
+                    "description": "Returns the `Upload-Offset` header: how many bytes Cloudflare already has. Use it as `Upload-Offset` in the PATCH to resume an interrupted upload."
+                  },
+                  "response": [
+                    {
+                      "name": "200 Offset",
+                      "originalRequest": {
+                        "method": "HEAD",
+                        "header": [
+                          {
+                            "key": "Tus-Resumable",
+                            "value": "1.0.0",
+                            "type": "text"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{galleryUploadURL}}",
+                          "host": [
+                            "{{galleryUploadURL}}"
+                          ],
+                          "path": []
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "text",
+                      "header": [
+                        {
+                          "key": "Upload-Offset",
+                          "value": "20971520"
+                        },
+                        {
+                          "key": "Upload-Length",
+                          "value": "46901252"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": ""
+                    }
+                  ]
+                },
+                {
+                  "name": "Step 3: Check video status",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/video/{{galleryVideoUid}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "video",
+                        "{{galleryVideoUid}}",
+                        "status"
+                      ]
+                    },
+                    "description": "`state` is one of: `pendingupload` → `downloading` / `queued` / `inprogress` → `ready`, or `error`.\n\n| Status | message |\n| --- | --- |\n| 200 | Video status fetched |\n| 404 | `Video not found on Cloudflare Stream` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+                  },
+                  "response": [
+                    {
+                      "name": "200 Ready",
+                      "originalRequest": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/video/{{galleryVideoUid}}/status",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "video",
+                            "{{galleryVideoUid}}",
+                            "status"
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": true,\n  \"message\": \"Video status fetched\",\n  \"data\": {\n    \"uid\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"url\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/watch\",\n    \"errorReason\": null,\n    \"pctComplete\": null,\n    \"readyToStream\": true,\n    \"size\": 1,\n    \"state\": \"ready\",\n    \"durationInSeconds\": 94\n  }\n}"
+                    },
+                    {
+                      "name": "404 Unknown uid",
+                      "originalRequest": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/video/{{galleryVideoUid}}/status",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "video",
+                            "{{galleryVideoUid}}",
+                            "status"
+                          ]
+                        }
+                      },
+                      "status": "Not Found",
+                      "code": 404,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"Video not found on Cloudflare Stream\",\n  \"error\": {}\n}"
+                    }
+                  ]
+                },
+                {
+                  "name": "Step 4: Create gallery video with videoUid",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\",\n  \"title\": \"Behind the scenes (full)\",\n  \"description\": \"\",\n  \"tags\": [\n    \"bts\"\n  ],\n  \"order\": 0,\n  \"isActive\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    },
+                    "description": "Creates a video item from the uploaded video. Works once `state` is past `pendingupload` (it does not need to be `ready`). `durationInSeconds` comes from Cloudflare and can be `null` while it is still processing.\n\nA poster can't be sent in JSON. To add one, send the same fields as **form-data** with a `poster` file (see **Create item**), or add it later with **Update item**. Without a poster, Stream's auto thumbnail is returned as `poster`.\n\n| Status | message |\n| --- | --- |\n| 201 | Gallery item created successfully |\n| 422 | `Video upload is not finished yet` / `Cloudflare could not process this video: ...` / `Invalid videoUid` |\n| 404 | `Video not found on Cloudflare Stream` |\n| 400 | `This video is already linked to another gallery item` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+                  },
+                  "response": [
+                    {
+                      "name": "201 Created (auto poster)",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\",\n  \"title\": \"Behind the scenes (full)\",\n  \"description\": \"\",\n  \"tags\": [\n    \"bts\"\n  ],\n  \"order\": 0,\n  \"isActive\": true\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/create",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "create"
+                          ]
+                        }
+                      },
+                      "status": "Created",
+                      "code": 201,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item created successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e8\",\n    \"title\": \"Behind the scenes (full)\",\n    \"description\": \"\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/manifest/video.m3u8\",\n    \"poster\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"durationInSeconds\": 94,\n    \"tags\": [\n      \"bts\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.535Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:49:57.535Z\"\n  }\n}"
+                    },
+                    {
+                      "name": "422 Upload not finished",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\",\n  \"title\": \"Behind the scenes (full)\",\n  \"description\": \"\",\n  \"tags\": [\n    \"bts\"\n  ],\n  \"order\": 0,\n  \"isActive\": true\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/create",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "create"
+                          ]
+                        }
+                      },
+                      "status": "Unprocessable Entity",
+                      "code": 422,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"Video upload is not finished yet\",\n  \"error\": {}\n}"
+                    },
+                    {
+                      "name": "404 Unknown uid",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\",\n  \"title\": \"Behind the scenes (full)\",\n  \"description\": \"\",\n  \"tags\": [\n    \"bts\"\n  ],\n  \"order\": 0,\n  \"isActive\": true\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/create",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "create"
+                          ]
+                        }
+                      },
+                      "status": "Not Found",
+                      "code": 404,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"Video not found on Cloudflare Stream\",\n  \"error\": {}\n}"
+                    },
+                    {
+                      "name": "400 Video already used",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{adminToken}}",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\",\n  \"title\": \"Behind the scenes (full)\",\n  \"description\": \"\",\n  \"tags\": [\n    \"bts\"\n  ],\n  \"order\": 0,\n  \"isActive\": true\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/gallery/admin/create",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "gallery",
+                            "admin",
+                            "create"
+                          ]
+                        }
+                      },
+                      "status": "Bad Request",
+                      "code": 400,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json; charset=utf-8"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": false,\n  \"message\": \"This video is already linked to another gallery item\",\n  \"error\": {}\n}"
+                    }
+                  ],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "let res;",
+                          "try { res = pm.response.json(); } catch (e) { res = null; }",
+                          "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "try { const v = res.data._id; if (pm.response.code < 300 && v) { pm.collectionVariables.set('galleryVideoItemId', v); console.log('saved galleryVideoItemId =', v); } } catch (e) {}"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Create item (image / gif / video + poster)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "media",
+                      "type": "file",
+                      "src": [],
+                      "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                    },
+                    {
+                      "key": "poster",
+                      "type": "file",
+                      "src": [],
+                      "description": "video only (optional)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "title",
+                      "value": "Premiere night",
+                      "type": "text",
+                      "description": "optional, max 150"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Red carpet at the IFTV premiere",
+                      "type": "text",
+                      "description": "optional, max 1000"
+                    },
+                    {
+                      "key": "tags",
+                      "value": "events,premiere",
+                      "type": "text",
+                      "description": "optional, comma separated / tags[] / JSON array"
+                    },
+                    {
+                      "key": "order",
+                      "value": "1",
+                      "type": "text",
+                      "description": "optional, integer ≥ 0"
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "type": "text",
+                      "description": "optional, default true"
+                    },
+                    {
+                      "key": "videoUid",
+                      "value": "{{galleryVideoUid}}",
+                      "type": "text",
+                      "description": "instead of media, for Direct upload videos",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "create"
+                  ]
+                },
+                "description": "**form-data**. Send either a `media` file or a `videoUid` (not both).\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| media | file | one of media / videoUid | **one** file. Image: jpg, jpeg, png, webp (max 10 MB). GIF: gif (max 10 MB; bigger GIFs must be uploaded as mp4). Video: mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp (up to 2048 MB through the server; bigger → Direct upload) |\n| videoUid | string | one of media / videoUid | 32 hex chars, from Direct upload step 1 |\n| poster | file | no | **video only**: jpg, jpeg, png, webp, max 10 MB. Without it Stream's auto thumbnail is used |\n| title | string | no | max 150 |\n| description | string | no | max 1000 |\n| tags | string[] | no | max 10, each max 30, lowercased + de-duplicated. Form-data: `tags=bts,events` or `tags[]=bts` (repeat) or `tags=[\"bts\"]` |\n| order | integer | no | 0–1000000, default 0. Lower comes first |\n| isActive | boolean | no | default true. false = hidden from users |\n\n| Status | message |\n| --- | --- |\n| 201 | Gallery item created successfully |\n| 422 | `media file or videoUid is required` / `Send either a media file or videoUid, not both` / `Poster is allowed only for videos` / `Invalid media file <name>. Allowed: ...` / `Only one media file is allowed` / `GIF <name> is larger than 10 MB. Upload it as a video (mp4) instead` / `Image <name> is larger than 10 MB` / `Invalid poster file. Allowed: ...` / `Title cannot exceed 150 characters` / `Order cannot be negative` / `Maximum 10 tags are allowed` |\n| 400 / 404 | videoUid errors, see Direct upload step 4 |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "201 Image",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item created successfully\",\n  \"data\": {\n    \"_id\": \"6aca4283acab35ec9bd561de\",\n    \"title\": \"Premiere night\",\n    \"description\": \"Red carpet at the IFTV premiere\",\n    \"mediaType\": \"image\",\n    \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"hlsUrl\": null,\n    \"poster\": null,\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"events\",\n      \"premiere\"\n    ],\n    \"order\": 1,\n    \"createdAt\": \"2026-10-10T13:49:55.893Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:49:55.893Z\"\n  }\n}"
+                },
+                {
+                  "name": "201 GIF",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item created successfully\",\n  \"data\": {\n    \"_id\": \"6aca4284acab35ec9bd561e1\",\n    \"title\": \"Dance loop\",\n    \"description\": \"\",\n    \"mediaType\": \"gif\",\n    \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"hlsUrl\": null,\n    \"poster\": null,\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"bts\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:56.882Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:49:56.882Z\"\n  }\n}"
+                },
+                {
+                  "name": "201 Video file + poster",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item created successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e4\",\n    \"title\": \"Teaser\",\n    \"description\": \"Official teaser\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/manifest/video.m3u8\",\n    \"poster\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"trailer\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.165Z\",\n    \"hasCustomPoster\": true,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:49:57.165Z\"\n  }\n}"
+                },
+                {
+                  "name": "422 No media",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"media file or videoUid is required\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 media + videoUid",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Send either a media file or videoUid, not both\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Poster with an image",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Poster is allowed only for videos\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Unsupported file",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Invalid media file notes.txt. Allowed: .jpg, .jpeg, .png, .webp, .gif, .mp4, .mov, .mkv, .webm, .avi, .m4v, .mpeg, .mpg, .flv, .wmv, .3gp\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 GIF over 10 MB",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"GIF huge.gif is larger than 10 MB. Upload it as a video (mp4) instead\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Field validation",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Title cannot exceed 150 characters, Order cannot be negative\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "401 No token",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Unauthorized",
+                  "code": 401,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Access Denied! Missing authorization token\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "403 Normal user",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "image (jpg, jpeg, png, webp), gif, or video (mp4, mov, mkv, webm, avi, m4v, mpeg, mpg, flv, wmv, 3gp)"
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "video only (optional)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "title",
+                          "value": "Premiere night",
+                          "type": "text",
+                          "description": "optional, max 150"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Red carpet at the IFTV premiere",
+                          "type": "text",
+                          "description": "optional, max 1000"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "events,premiere",
+                          "type": "text",
+                          "description": "optional, comma separated / tags[] / JSON array"
+                        },
+                        {
+                          "key": "order",
+                          "value": "1",
+                          "type": "text",
+                          "description": "optional, integer ≥ 0"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, default true"
+                        },
+                        {
+                          "key": "videoUid",
+                          "value": "{{galleryVideoUid}}",
+                          "type": "text",
+                          "description": "instead of media, for Direct upload videos",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "Forbidden",
+                  "code": 403,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden: You do not have permission to perform this action.\",\n  \"error\": {}\n}"
+                }
+              ],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let res;",
+                      "try { res = pm.response.json(); } catch (e) { res = null; }",
+                      "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                      "try { const v = res.data._id; if (pm.response.code < 300 && v) { pm.collectionVariables.set('galleryItemId', v); console.log('saved galleryItemId =', v); } } catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Bulk create (up to 10 images / gifs)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "media",
+                      "type": "file",
+                      "src": [],
+                      "description": "1–10 files, select several (or repeat the key / use media[])"
+                    },
+                    {
+                      "key": "tags",
+                      "value": "behind the scenes",
+                      "type": "text",
+                      "description": "optional, applied to every item"
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "type": "text",
+                      "description": "optional, applied to every item"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/bulk-create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "bulk-create"
+                  ]
+                },
+                "description": "**form-data**. Each file becomes its own gallery item with an empty title (set it later with **Update item**). **Videos are not allowed** here; use **Create item**.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| media | file[] | yes | 1–10 files, jpg, jpeg, png, webp, gif; each max 10 MB |\n| tags | string[] | no | same rules as Create item, applied to all |\n| isActive | boolean | no | default true, applied to all |\n\n**All or nothing**: every file is checked before anything is uploaded. If one upload fails, the files already uploaded are deleted and nothing is saved (the error is returned).\n\n| Status | message |\n| --- | --- |\n| 201 | Gallery items created successfully (`data`: `{ count, items: [item] }`) |\n| 422 | `At least one media file is required` / `Maximum 10 files can be uploaded at once` / `Invalid media file <name>. Allowed: .jpg, .jpeg, .png, .webp, .gif` / `GIF <name> is larger than 10 MB. ...` / `Title is not allowed` (only tags and isActive are accepted) |\n| 500 | a Cloudflare upload failed (nothing saved) |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "201 Three files",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "1–10 files, select several (or repeat the key / use media[])"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "behind the scenes",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/bulk-create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "bulk-create"
+                      ]
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery items created successfully\",\n  \"data\": {\n    \"count\": 3,\n    \"items\": [\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f5\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.295Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n        \"updatedAt\": \"2026-10-10T13:50:01.295Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f6\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n        \"updatedAt\": \"2026-10-10T13:50:01.296Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f7\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"gif\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n        \"updatedAt\": \"2026-10-10T13:50:01.296Z\"\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "422 More than 10 files",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "1–10 files, select several (or repeat the key / use media[])"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "behind the scenes",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/bulk-create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "bulk-create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Maximum 10 files can be uploaded at once\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Video in bulk",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "1–10 files, select several (or repeat the key / use media[])"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "behind the scenes",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/bulk-create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "bulk-create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Invalid media file clip.mp4. Allowed: .jpg, .jpeg, .png, .webp, .gif\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 No files",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "1–10 files, select several (or repeat the key / use media[])"
+                        },
+                        {
+                          "key": "tags",
+                          "value": "behind the scenes",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, applied to every item"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/bulk-create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "bulk-create"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"At least one media file is required\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Get all items (admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/getAll?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "getAll"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "default 20, max 100"
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "false",
+                      "description": "optional: true | false (hidden items)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "mediaType",
+                      "value": "image",
+                      "description": "optional: `image` | `gif` | `video`",
+                      "disabled": true
+                    },
+                    {
+                      "key": "tag",
+                      "value": "bts",
+                      "description": "optional",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "teaser",
+                      "description": "optional: title / description",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "optional ISO date (createdAt ≥)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "optional ISO date (createdAt ≤, end of day)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "optional: order | createdAt | updatedAt. Without it: same order users see",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "optional: asc | desc (default desc)",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Every non-deleted item, hidden ones too, with `createdBy` (`name`, `email`, `role`).\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery items fetched successfully |\n| 404 | `No any galleryitem found` |\n| 422 | `Sort By must be one of [order, createdAt, updatedAt]` / `Limit must be less than or equal to 100` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 All items",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/getAll?page=1&limit=20",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1",
+                          "description": "default 1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "20",
+                          "description": "default 20, max 100"
+                        },
+                        {
+                          "key": "isActive",
+                          "value": "false",
+                          "description": "optional: true | false (hidden items)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "mediaType",
+                          "value": "image",
+                          "description": "optional: `image` | `gif` | `video`",
+                          "disabled": true
+                        },
+                        {
+                          "key": "tag",
+                          "value": "bts",
+                          "description": "optional",
+                          "disabled": true
+                        },
+                        {
+                          "key": "search",
+                          "value": "teaser",
+                          "description": "optional: title / description",
+                          "disabled": true
+                        },
+                        {
+                          "key": "fromDate",
+                          "value": "2026-10-01",
+                          "description": "optional ISO date (createdAt ≥)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "toDate",
+                          "value": "2026-10-31",
+                          "description": "optional ISO date (createdAt ≤, end of day)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "sortBy",
+                          "value": "createdAt",
+                          "description": "optional: order | createdAt | updatedAt. Without it: same order users see",
+                          "disabled": true
+                        },
+                        {
+                          "key": "sortOrder",
+                          "value": "desc",
+                          "description": "optional: asc | desc (default desc)",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery items fetched successfully\",\n  \"data\": {\n    \"total\": 7,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"data\": [\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f7\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"gif\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": {\n          \"_id\": \"6aca427b8f1f88f868cf6439\",\n          \"name\": \"IFTV Admin\",\n          \"email\": \"admin@example.com\",\n          \"role\": \"admin\"\n        },\n        \"updatedAt\": \"2026-10-10T13:50:01.296Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f6\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.296Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": {\n          \"_id\": \"6aca427b8f1f88f868cf6439\",\n          \"name\": \"IFTV Admin\",\n          \"email\": \"admin@example.com\",\n          \"role\": \"admin\"\n        },\n        \"updatedAt\": \"2026-10-10T13:50:01.296Z\"\n      },\n      {\n        \"_id\": \"6aca4289acab35ec9bd561f5\",\n        \"title\": \"\",\n        \"description\": \"\",\n        \"mediaType\": \"image\",\n        \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n        \"hlsUrl\": null,\n        \"poster\": null,\n        \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n        \"durationInSeconds\": null,\n        \"tags\": [\n          \"behind the scenes\"\n        ],\n        \"order\": 0,\n        \"createdAt\": \"2026-10-10T13:50:01.295Z\",\n        \"hasCustomPoster\": false,\n        \"isActive\": true,\n        \"createdBy\": {\n          \"_id\": \"6aca427b8f1f88f868cf6439\",\n          \"name\": \"IFTV Admin\",\n          \"email\": \"admin@example.com\",\n          \"role\": \"admin\"\n        },\n        \"updatedAt\": \"2026-10-10T13:50:01.295Z\"\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "422 Bad sortBy",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/getAll?sortBy=title",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "getAll"
+                      ],
+                      "query": [
+                        {
+                          "key": "sortBy",
+                          "value": "title"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Sort By must be one of [order, createdAt, updatedAt]\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Get item (admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/get/{{galleryItemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "get",
+                    "{{galleryItemId}}"
+                  ]
+                },
+                "description": "One item (hidden ones too) with `createdBy` populated.\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery item fetched successfully |\n| 404 | `Gallery item not found` |\n| 422 | `Invalid Gallery item Id` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 Item",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/get/{{galleryVideoItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "get",
+                        "{{galleryVideoItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item fetched successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e8\",\n    \"title\": \"Behind the scenes (full)\",\n    \"description\": \"\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/manifest/video.m3u8\",\n    \"poster\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"durationInSeconds\": 94,\n    \"tags\": [\n      \"bts\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.535Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": {\n      \"_id\": \"6aca427b8f1f88f868cf6439\",\n      \"name\": \"IFTV Admin\",\n      \"role\": \"admin\",\n      \"email\": \"admin@example.com\"\n    },\n    \"updatedAt\": \"2026-10-10T13:50:08.560Z\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "Update item (JSON)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Premiere night 2026\",\n  \"description\": \"Red carpet at the IFTV premiere\",\n  \"tags\": [\n    \"events\",\n    \"red carpet\"\n  ],\n  \"order\": 1,\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "update",
+                    "{{galleryItemId}}"
+                  ]
+                },
+                "description": "Raw JSON for text fields. Send only what changes. Use the form-data version to replace files.\n\n| Field | Type | Rules |\n| --- | --- | --- |\n| title / description | string | same as create; `\"\"` clears |\n| tags | string[] | replaces all tags; `[]` clears |\n| order | integer | 0–1000000 |\n| isActive | boolean | false hides the item from users |\n| videoUid | string | switch the media to a Direct upload video (an image item becomes a video) |\n| removePoster | boolean | video only: deletes the custom poster, Stream's auto thumbnail is used again |\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery item updated successfully |\n| 422 | `Nothing to update` / `Invalid Gallery item Id` / field validation |\n| 404 | `Gallery item not found` |\n| 400 | `This video is already linked to another gallery item` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 Updated",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Premiere night 2026\",\n  \"description\": \"Red carpet at the IFTV premiere\",\n  \"tags\": [\n    \"events\",\n    \"red carpet\"\n  ],\n  \"order\": 1,\n  \"isActive\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item updated successfully\",\n  \"data\": {\n    \"_id\": \"6aca4283acab35ec9bd561de\",\n    \"title\": \"Premiere night 2026\",\n    \"description\": \"Red carpet at the IFTV premiere\",\n    \"mediaType\": \"image\",\n    \"media\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"hlsUrl\": null,\n    \"poster\": null,\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"events\",\n      \"red carpet\"\n    ],\n    \"order\": 1,\n    \"createdAt\": \"2026-10-10T13:49:55.893Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:50:02.300Z\"\n  }\n}"
+                },
+                {
+                  "name": "200 Hidden (isActive false)",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryVideoItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryVideoItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item updated successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e8\",\n    \"title\": \"Behind the scenes (full)\",\n    \"description\": \"\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/manifest/video.m3u8\",\n    \"poster\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/thumbnails/thumbnail.jpg\",\n    \"durationInSeconds\": 94,\n    \"tags\": [\n      \"bts\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.535Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": false,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:50:07.741Z\"\n  }\n}"
+                },
+                {
+                  "name": "200 Poster removed",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"removePoster\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryVideoItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryVideoItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item updated successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e4\",\n    \"title\": \"Teaser (new poster)\",\n    \"description\": \"Official teaser\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/manifest/video.m3u8\",\n    \"poster\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n    \"thumbnailUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/thumbnails/thumbnail.jpg\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"trailer\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.165Z\",\n    \"hasCustomPoster\": false,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:50:03.826Z\"\n  }\n}"
+                },
+                {
+                  "name": "422 Nothing to update",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Nothing to update\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "400 Video already used",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"videoUid\": \"{{galleryVideoUid}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Bad Request",
+                  "code": 400,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"This video is already linked to another gallery item\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "404 Not found",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Premiere night 2026\",\n  \"description\": \"Red carpet at the IFTV premiere\",\n  \"tags\": [\n    \"events\",\n    \"red carpet\"\n  ],\n  \"order\": 1,\n  \"isActive\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Gallery item not found\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Invalid id",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Premiere night 2026\",\n  \"description\": \"Red carpet at the IFTV premiere\",\n  \"tags\": [\n    \"events\",\n    \"red carpet\"\n  ],\n  \"order\": 1,\n  \"isActive\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/123",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "123"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Invalid Gallery item Id\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Update item (replace media / poster)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "media",
+                      "type": "file",
+                      "src": [],
+                      "description": "optional: new image / gif / video. The type can change (image → video etc.)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "poster",
+                      "type": "file",
+                      "src": [],
+                      "description": "optional: new poster (video items only)"
+                    },
+                    {
+                      "key": "title",
+                      "value": "Teaser (new poster)",
+                      "type": "text",
+                      "description": "optional"
+                    },
+                    {
+                      "key": "removePoster",
+                      "value": "true",
+                      "type": "text",
+                      "description": "optional, can't be sent with a poster file",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/update/{{galleryVideoItemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "update",
+                    "{{galleryVideoItemId}}"
+                  ]
+                },
+                "description": "**form-data**, same fields as Update item (JSON) plus `media` and `poster` files.\n\n- Old files are deleted from Cloudflare **only after** the update is saved. If the update fails, the new uploads are deleted and the item stays as it was.\n- New `media` that is an image / gif clears the poster and duration (and deletes the old poster).\n- `media` and `videoUid` together → 422. `poster` and `removePoster` together → 422.\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery item updated successfully |\n| 422 | `Poster is allowed only for videos` / `Send either a media file or videoUid, not both` / `Send either a poster file or removePoster, not both` / file type or size errors as in Create item |\n| 404 | `Gallery item not found` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 New poster",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "optional: new image / gif / video. The type can change (image → video etc.)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "optional: new poster (video items only)"
+                        },
+                        {
+                          "key": "title",
+                          "value": "Teaser (new poster)",
+                          "type": "text",
+                          "description": "optional"
+                        },
+                        {
+                          "key": "removePoster",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, can't be sent with a poster file",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryVideoItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryVideoItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item updated successfully\",\n  \"data\": {\n    \"_id\": \"6aca4285acab35ec9bd561e4\",\n    \"title\": \"Teaser (new poster)\",\n    \"description\": \"Official teaser\",\n    \"mediaType\": \"video\",\n    \"media\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/watch\",\n    \"hlsUrl\": \"https://customer-<code>.cloudflarestream.com/7eea7d824cfc2562b665b93ccb0fdf53/manifest/video.m3u8\",\n    \"poster\": \"https://imagedelivery.net/<account-hash>/<image-id>/public\",\n    \"thumbnailUrl\": \"https://imagedelivery.net/<account-hash>/<image-id>/thumbnail\",\n    \"durationInSeconds\": null,\n    \"tags\": [\n      \"trailer\"\n    ],\n    \"order\": 0,\n    \"createdAt\": \"2026-10-10T13:49:57.165Z\",\n    \"hasCustomPoster\": true,\n    \"isActive\": true,\n    \"createdBy\": \"6aca427b8f1f88f868cf6439\",\n    \"updatedAt\": \"2026-10-10T13:50:03.077Z\"\n  }\n}"
+                },
+                {
+                  "name": "422 Poster on an image item",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "media",
+                          "type": "file",
+                          "src": [],
+                          "description": "optional: new image / gif / video. The type can change (image → video etc.)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "poster",
+                          "type": "file",
+                          "src": [],
+                          "description": "optional: new poster (video items only)"
+                        },
+                        {
+                          "key": "title",
+                          "value": "Teaser (new poster)",
+                          "type": "text",
+                          "description": "optional"
+                        },
+                        {
+                          "key": "removePoster",
+                          "value": "true",
+                          "type": "text",
+                          "description": "optional, can't be sent with a poster file",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/update/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "update",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Poster is allowed only for videos\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Reorder items",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    {\n      \"id\": \"{{galleryVideoItemId}}\",\n      \"order\": 0\n    },\n    {\n      \"id\": \"{{galleryItemId}}\",\n      \"order\": 1\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/reorder",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "reorder"
+                  ]
+                },
+                "description": "Raw JSON. Sets `order` for many items at once (drag and drop). Send only the items that moved, or the whole visible page.\n\n| Field | Type | Required | Rules |\n| --- | --- | --- | --- |\n| items | array | yes | 1–100 entries, each id only once |\n| items[].id | string | yes | gallery item id |\n| items[].order | integer | yes | 0–1000000 |\n\nNothing changes if any id doesn't exist (or is deleted).\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery order updated successfully (`data`: `{ updated }`) |\n| 404 | `Gallery item not found: <ids>` |\n| 422 | `Each gallery item can appear only once` / `Send at least one item` / `Maximum 100 items can be reordered at once` / `Invalid gallery item id` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 Reordered",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"items\": [\n    {\n      \"id\": \"{{galleryVideoItemId}}\",\n      \"order\": 0\n    },\n    {\n      \"id\": \"{{galleryItemId}}\",\n      \"order\": 1\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/reorder",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "reorder"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery order updated successfully\",\n  \"data\": {\n    \"updated\": 3\n  }\n}"
+                },
+                {
+                  "name": "404 Unknown id",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"items\": [\n    {\n      \"id\": \"{{galleryVideoItemId}}\",\n      \"order\": 0\n    },\n    {\n      \"id\": \"{{galleryItemId}}\",\n      \"order\": 1\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/reorder",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "reorder"
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Gallery item not found: 6707f1a2b3c4d5e6f7a8b9c0\",\n  \"error\": {}\n}"
+                },
+                {
+                  "name": "422 Duplicate id",
+                  "originalRequest": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"items\": [\n    {\n      \"id\": \"{{galleryVideoItemId}}\",\n      \"order\": 0\n    },\n    {\n      \"id\": \"{{galleryItemId}}\",\n      \"order\": 1\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/reorder",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "reorder"
+                      ]
+                    }
+                  },
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Each gallery item can appear only once\",\n  \"error\": {}\n}"
+                }
+              ]
+            },
+            {
+              "name": "Delete item",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/gallery/admin/delete/{{galleryItemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "gallery",
+                    "admin",
+                    "delete",
+                    "{{galleryItemId}}"
+                  ]
+                },
+                "description": "Soft deletes the item and **deletes its files from Cloudflare** (media + poster). It can't be restored. To only hide an item, use Update with `isActive: false`.\n\n| Status | message |\n| --- | --- |\n| 200 | Gallery item deleted successfully |\n| 404 | `Gallery item not found` (also when already deleted) |\n| 422 | `Invalid Gallery item Id` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (role is `user`) / `Invalid or malformed token. Please log in again.` |"
+              },
+              "response": [
+                {
+                  "name": "200 Deleted",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/delete/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "delete",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Gallery item deleted successfully\",\n  \"data\": {}\n}"
+                },
+                {
+                  "name": "404 Already deleted",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/gallery/admin/delete/{{galleryItemId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "gallery",
+                        "admin",
+                        "delete",
+                        "{{galleryItemId}}"
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json; charset=utf-8"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"message\": \"Gallery item not found\",\n  \"error\": {}\n}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -11439,6 +15065,30 @@
       "value": "",
       "type": "string",
       "description": "2factor sessionId, auto-saved by Login / Sign-up with mobile (send OTP)"
+    },
+    {
+      "key": "galleryItemId",
+      "value": "",
+      "type": "string",
+      "description": "gallery item _id, auto-saved by Gallery → Create item"
+    },
+    {
+      "key": "galleryVideoItemId",
+      "value": "",
+      "type": "string",
+      "description": "gallery video item _id, auto-saved by Gallery → Direct upload step 4"
+    },
+    {
+      "key": "galleryVideoUid",
+      "value": "",
+      "type": "string",
+      "description": "auto-saved by Gallery → Direct upload step 1"
+    },
+    {
+      "key": "galleryUploadURL",
+      "value": "",
+      "type": "string",
+      "description": "auto-saved by Gallery → Direct upload step 1 (one-time Cloudflare TUS URL)"
     }
   ]
 }
