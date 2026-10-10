@@ -10,6 +10,7 @@ const { errorHandler, cleanupTempFiles } = require("./middlewares");
 const { throwError } = require("./utils");
 const { UPLOAD_LIMITS } = require("./constants");
 const allRoutes = require("./routes");
+const { startJobs } = require("./jobs");
 
 const app = express();
 const port = process.env.PORT || 8500;
@@ -51,6 +52,7 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 mongoDb();
+startJobs();
 const server = app.listen(port, () =>
   console.log(`✅ IFTV-OTT Server running on http://localhost:${port}`),
 );

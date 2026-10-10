@@ -8,6 +8,9 @@ const {
 const { sendSupportAdminAlertMail } = require("./sendSupportAdminAlertMail");
 const { sendSupportReplyMail } = require("./sendSupportReplyMail");
 const { sendPaymentSuccessMail } = require("./sendPaymentSuccessMail");
+const {
+  sendSubscriptionReminderMail,
+} = require("./sendSubscriptionReminderMail");
 
 module.exports = {
   sendLoginOtpMail,
@@ -16,4 +19,5 @@ module.exports = {
   sendSupportAdminAlertMail,
   sendSupportReplyMail,
   sendPaymentSuccessMail,
+  sendSubscriptionReminderMail,
 };
