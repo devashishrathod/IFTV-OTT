@@ -30,7 +30,16 @@ app.use(
   }),
 );
 app.use(cleanupTempFiles);
-app.use(express.json());
+app.use(
+  express.json({
+    // Razorpay webhook signatures are computed on the exact raw body
+    verify: (req, res, buf) => {
+      if (req.originalUrl.startsWith("/iftv-ott/payments/webhook")) {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(morgan("dev"));
 app.use("/iftv-ott/", allRoutes);
 app.get("/", async (req, res) => {
