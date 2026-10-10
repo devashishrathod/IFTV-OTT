@@ -1,12 +1,13 @@
 # Known issues and bugs: fix plan
 
-Last update: 2026-10-10 · Status: **S1 (mobile OTP) poora theek ✅. B1 sirf mobile route mein theek hua. Baaki sab abhi khula hai.** Har fix se pehle plan confirm karke hi code badlega.
+Last update: 2026-10-10 · Status: **S1 (mobile OTP) poora theek ✅. B1 sirf mobile route mein theek hua. Subscriptions wale issues (S6 ka subscriptions hissa, B2/B3/B5 subscriptions mein, P1–P5) subscription-payments feature ke saath theek hue ✅. Baaki sab abhi khula hai.** Har fix se pehle plan confirm karke hi code badlega.
 
 | Tarikh | Kya badla |
 | --- | --- |
 | 2026-10-10 | Mobile OTP: 2factor ka SMS bhejna aur verify karna wapas chalu hua (`loginOrSignInWithMobile.js`, `verifyOtpWithMobile.js`). Review mein naye issues mile: S1a (sessionId mobile se juda nahi, ab bhi bypass), S1b (galat OTP par 500), S1c (`msg` envelope), S1d (API key logs mein) |
 | 2026-10-10 | ✅ S1a, S1b, S1c aur S1d theek hue, saath mein mobile route ka B1. Files: `controllers/auth/loginOrSignInWithMobile.js`, `controllers/auth/verifyOtpWithMobile.js`, `helpers/twoFactor/sendOtpToMobile.js`, `helpers/twoFactor/verifyOtpToMobile.js`, `models/User.js` (`otp.sessionId` joda). Nakli 2factor aur test DB par 23/23 test pass (attacker wala S1a scenario bhi). Asli 2factor par nakli session se helper ka jawab check kiya |
 | 2026-10-10 | Naya section *Future: missing APIs* joda. F1: Support assign dropdown ke liye admin/staff list API |
+| 2026-10-10 | ✅ Subscription + Razorpay feature ke saath subscriptions module ke issues theek hue: S6 (sirf `routes/subscriptions.js`: add / update / delete par `isAdmin`), B2 / B3 / B5 (subscriptions mein), P1–P5. Plan doc: `docs/subscription-payments-plan.md` |
 
 Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman collection ban rahi thi (`server/postman/IFTV.postman_collection.json`). Collection ke descriptions mein bhi ye ⚠️ ke saath likhe hain.
 
@@ -40,7 +41,7 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 | S3 | Register aur login ke response mein password hash aata hai. Login mein pending `otp` bhi aa sakta hai | `controllers/auth/register.js`, `controllers/auth/login.js`; `models/User.js` mein `password` par `select:false` nahi hai | Hash aur OTP leak | Model mein `password` aur `otp` par `select:false` lagana, ya response mein `toObject()` karke ye fields hata dena |
 | S4 | OTP se bane saare users ka password `DEFAULT_PASSWORD` hai (ek hi value) | `loginOrSignInWithEmail.js`, `loginOrSignInWithMobile.js` | Ye value jaanne wala `/auth/login` se kisi bhi OTP user ki tarah login kar sakta hai | Har user ke liye random password, ya OTP users ke liye password login band (loginType check) |
 | S5 | `?userId=` se koi bhi login user doosre user ka profile padh ya badal sakta hai (IDOR) | `controllers/users/getUser.js`, `controllers/users/updateUser.js` | Doosre users ka data padhna aur badalna | `userId` query sirf admin ke liye. Normal user hamesha `req.userId` |
-| S6 | Admin checks comment out hain, aur `POST /movies/add` par check hai hi nahi | `routes/categories.js`, `routes/subCategories.js`, `routes/banners.js`, `routes/movies.js`, `routes/subscriptions.js` | Koi bhi bina login categories, movies, banners aur plans bana, badal aur delete kar sakta hai | Create, update aur delete par `isAdmin` (ya `validateRoles(ADMIN, STAFF)`) chalu karna. Admin panel ko token bhejna hoga |
+| S6 | Admin checks comment out hain, aur `POST /movies/add` par check hai hi nahi | `routes/categories.js`, `routes/subCategories.js`, `routes/banners.js`, `routes/movies.js`, `routes/subscriptions.js` | Koi bhi bina login categories, movies, banners aur plans bana, badal aur delete kar sakta hai. ✅ **Subscriptions theek (2026-10-10):** plan add / update / delete ab `isAdmin` maangte hain. Categories, subCategories, banners, movies abhi baaki | Create, update aur delete par `isAdmin` (ya `validateRoles(ADMIN, STAFF)`) chalu karna. Admin panel ko token bhejna hoga |
 | S7 | `.env` git mein track ho raha hai. Usme Cloudinary secret, Gmail aur Nodemailer password, MongoDB credentials aur ek purana Cloudflare token hai | `server/.env`, `.gitignore` (`.env` wali line comment out hai) | Repo jiske paas hai, uske paas saare secrets hain | `.env` ko git se hatana (`git rm --cached`), `.gitignore` theek karna, `.env.example` banana, aur saare secrets badalna |
 | S8 | OTP par koi attempt limit nahi, aur resend par koi throttle nahi | `verifyOtpWithEmail.js`, `loginOrSignInWithEmail.js` | 5 minute mein 6 digit ka OTP brute-force ho sakta hai, aur mail spam | Attempt counter (jaise 5 galat ke baad OTP khatam), resend cooldown (jaise 60 second) |
 | S9 | `verifyJwtToken` mein `isActive:false` users block nahi hote | `middlewares/verifyJwtToken.js`, `middlewares/validateRoles.js` | Deactivated user ka token chalta rahta hai | `isActive` check jodna (403) |
@@ -50,10 +51,10 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 | ID | Issue | Kahan | Asar | Fix ka idea |
 |---|---|---|---|---|
 | B1 | OTP routes mein naye user ke liye `User.create` ko `await` nahi kiya jaata. ✅ **Mobile route mein theek hua (2026-10-10):** ab `await` hota hai, galat role par error response aata hai aur server chalta rehta hai (test kiya). ❌ **Email route (`loginOrSignInWithEmail.js`) mein abhi bhi baaki hai** | `loginOrSignInWithEmail.js` | Galat email, role ya loginType par response 200 aata hai, phir unhandled rejection se **server process crash** ho jaata hai | `await` lagana. `index.js` mein `unhandledRejection` handler bhi |
-| B2 | Body na ho to 500 aata hai: `Cannot destructure property ... of undefined` | Auth ke saare routes; category, subCategory aur banner create; subscription create | Galat status code aur ganda message | Controller mein `req.body ?? {}`, ya ek middleware jo body na ho to `{}` set kare |
-| B3 | `search` aur `name` filter regex escape nahi hote | `services/categories/getAllCategories.js`, `services/subCategories/...getAll`, `services/banners/getAllBanners.js`, `services/subscriptions/getAllSubscription.js` | `search=(` jaisa input dene par 500 | `escapeRegex` lagana (`services/supports/ticketHelpers.js` mein pehle se hai, use shared util bana sakte hain) |
+| B2 | Body na ho to 500 aata hai: `Cannot destructure property ... of undefined` | Auth ke saare routes; category, subCategory aur banner create; ~~subscription create~~ ✅ (2026-10-10) | Galat status code aur ganda message | Controller mein `req.body ?? {}`, ya ek middleware jo body na ho to `{}` set kare |
+| B3 | `search` aur `name` filter regex escape nahi hote | `services/categories/getAllCategories.js`, `services/subCategories/...getAll`, `services/banners/getAllBanners.js`, ~~`services/subscriptions/getAllSubscription.js`~~ ✅ (2026-10-10) | `search=(` jaisa input dene par 500 | `escapeRegex` lagana (`services/supports/ticketHelpers.js` mein pehle se hai, use shared util bana sakte hain) |
 | B4 | `deleteStreamVideo` Cloudflare ka 404 aane par throw karta hai | `services/cloudflare/stream.js` | Video Cloudflare se pehle hi hat chuka ho to banner ya movie delete hamesha 404 deta hai, aur record kabhi delete nahi hota | `validateStatus` lagana aur 404 ko "pehle hi delete hai, theek hai" maanna |
-| B5 | Mongoose validation aur cast errors 500 dete hain | `middlewares/errorHandler.js` | Galat email ya role (register), galat id (subscriptions get aur delete) par 500 | errorHandler mein `ValidationError` aur `CastError` ko 422 banana. Subscriptions mein `validateObjectId` |
+| B5 | Mongoose validation aur cast errors 500 dete hain | `middlewares/errorHandler.js` | Galat email ya role (register) par 500. ✅ Subscriptions get / delete / update mein `validateObjectId` lag gaya (2026-10-10), errorHandler wala hissa baaki | errorHandler mein `ValidationError` aur `CastError` ko 422 banana. Subscriptions mein `validateObjectId` |
 
 ## P2: Bugs (module ke hisaab se)
 
@@ -103,11 +104,11 @@ Ye issues 10 Oct 2026 ko poore backend ka code padhte waqt mile, jab Postman col
 ### Subscriptions
 | ID | Issue | Kahan | Fix ka idea |
 |---|---|---|---|
-| P1 | get-all mein anjaan query keys filter ban jaate hain (`?foo=bar` par 404) | `services/subscriptions/getAllSubscription.js` | Sirf jaane-pehchaane filters lena |
-| P2 | Galat id par 500 aata hai | `services/subscriptions/*` | `validateObjectId` → 422 |
-| P3 | `durationInDays` bina bataye ignore ho jaata hai | `createSubscription` | Joi se hata dena, ya docs mein likhna |
-| P4 | `toDate` din ke end tak nahi badhta, baaki modules mein badhta hai | `getAllSubscription.js` | 23:59:59.999 set karna |
-| P5 | Controller Joi ka `value` nahi, raw `req.body` save karta hai | `controllers/subscriptions/createSubscription.js` | `value` pass karna |
+| P1 | ✅ Theek (2026-10-10): sirf `name`, `type`, `isActive` filter bante hain, baaki keys ignore. get-all mein anjaan query keys filter ban jaate hain (`?foo=bar` par 404) | `services/subscriptions/getAllSubscription.js` | Sirf jaane-pehchaane filters lena |
+| P2 | ✅ Theek (2026-10-10): `validateObjectId` → 422 `Invalid Subscription Id`. Galat id par 500 aata hai | `services/subscriptions/*` | `validateObjectId` → 422 |
+| P3 | ✅ Postman mein likha: field accept hota hai par server `type` se set karta hai. `durationInDays` bina bataye ignore ho jaata hai | `createSubscription` | Joi se hata dena, ya docs mein likhna |
+| P4 | ✅ Theek (2026-10-10). `toDate` din ke end tak nahi badhta, baaki modules mein badhta hai | `getAllSubscription.js` | 23:59:59.999 set karna |
+| P5 | ✅ Theek (2026-10-10): Joi `value` save hota hai. Controller Joi ka `value` nahi, raw `req.body` save karta hai | `controllers/subscriptions/createSubscription.js` | `value` pass karna |
 | P6 | `SUBSCRIPTION_PLANS` constant kahin use nahi hota | `constants.js` | Use karna ya hatana |
 
 ## P3: Cleanup aur consistency

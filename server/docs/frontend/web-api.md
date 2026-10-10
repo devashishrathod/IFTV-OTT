@@ -2,11 +2,13 @@
 
 Last update: 2026-10-10 · Index: [README.md](README.md)
 
-Ye doc website team ke liye hai. Isme 3 features hain:
+Ye doc website team ke liye hai. Isme 5 features hain:
 
 1. [Auth: OTP login](#1-auth-otp-login) (mobile OTP aur email OTP)
 2. [Support](#2-support): Contact Us (bina login) aur Tickets (login ke baad)
 3. [Gallery](#3-gallery) (bina login)
+4. [Subscription + Payment (Razorpay)](#4-subscription--payment-razorpay): plans, plan kharidna, my plan, history, transactions, upgrade
+5. [Movies: free / paid lock](#5-movies-free--paid-lock)
 
 ---
 
@@ -67,6 +69,8 @@ UI mein error dikhana ho to `message` hi dikhao.
 ### Khali list = 404
 
 List wale APIs (`/supports/my`, `/gallery/getAll`) par koi record na ho to **404** aata hai, message `No any ... found` ke saath. Ise error mat dikhao, **empty state** ("Abhi kuch nahi hai") dikhao.
+
+**Exception:** subscription aur payment ki nayi list APIs (`/subscriptions/plans`, `/subscriptions/my/history`, `/payments/my`) khali hone par **200** ke saath khali list (`[]`) deti hain, 404 nahi.
 
 ### Dates
 
@@ -732,6 +736,453 @@ Share link ya direct item page (`/gallery/<id>`) ke liye. Response mein ek item 
 
 ---
 
+## 4. Subscription + Payment (Razorpay)
+
+User website par plan kharidta hai (Razorpay Checkout se). Plan **prepaid** hai: auto-renew abhi nahi hai, plan khatam hone par user khud renew karta hai.
+
+### Paise ka rule (zaroor padho)
+
+| Kahan | Unit | Example |
+| --- | --- | --- |
+| Plan ka `price` (`/subscriptions/plans`, `plan.price`) | **rupees** (GST shamil) | `199` = ₹199 |
+| Payment ke saare amounts: `amount`, `planPrice`, `creditApplied`, `payable`, `amountPaid` | **paise** | `19900` = ₹199 |
+
+Dikhate waqt paise ko `/ 100` karo: `₹${(payable / 100).toFixed(2)}`.
+
+### Plan kharidne ke rules
+
+Server khud decide karta hai, website ko sirf `planId` bhejna hai:
+
+| User ke paas | Kaunsa plan chuna | Kya hoga |
+| --- | --- | --- |
+| Koi active plan nahi | koi bhi | **new**: aaj se shuru, poora price |
+| Active plan hai | **wahi plan** | **renewal**: current plan khatam hote hi shuru, poora price. Ek time par sirf 1 renewal queue ho sakta hai |
+| Active plan hai | **mehenga plan**, aur admin ne upgrade ON kiya hai | **upgrade**: aaj se shuru. Purane plan ke bache din ka paisa credit, user sirf farak deta hai (kam se kam ₹1) |
+| Active plan hai | mehenga plan, upgrade OFF | 409, "current plan khatam hone ke baad lo" |
+| Active plan hai | sasta / same price ka dusra plan | 409, "current plan khatam hone ke baad lo" |
+
+### Poora flow
+
+```
+1. GET  /subscriptions/plans            → plan cards dikhao
+2. GET  /payments/quote?planId=...      → "Aapko ₹X dene honge" (optional par recommended)
+3. POST /payments/create-order          → data.checkout milta hai
+4. new Razorpay(checkout).open()        → user pay karta hai
+5a. success handler → POST /payments/verify  → plan active, success screen
+5b. modal band / fail → POST /payments/failed
+6. GET  /subscriptions/my               → "My plan" screen refresh
+```
+
+Payment ho gaya par browser band ho gaya to bhi chinta nahi: server ka webhook plan chalu kar deta hai. User agli baar aaye to `/subscriptions/my` mein plan dikhega.
+
+### Subscription period ke fields
+
+`/subscriptions/my`, history aur verify mein ye object aata hai:
+
+| Field | Type | Kya hai |
+| --- | --- | --- |
+| _id | string | period id |
+| planId | string | |
+| plan | object | kharidte waqt ka plan: `name`, `type`, `price` (rupees), `durationInDays`, `benefits`. Baad mein admin price badle to ye nahi badlega |
+| status | enum | `active` (abhi chal raha), `scheduled` (renewal, baad mein shuru hoga), `expired`, `upgraded` (upgrade ki wajah se band), `cancelled` (admin ne band kiya) |
+| source | enum | `purchase`, `renewal`, `upgrade`, `admin_grant` (admin ne free diya) |
+| startDate, endDate | date | |
+| daysLeft | number | sirf `active` mein |
+| amountPaid, creditApplied | number | paise |
+| paymentId | string | admin grant mein nahi hota |
+| endedAt | date | upgrade / cancel se pehle band hua to |
+
+### 4.1 Plans (bina login)
+
+`GET /subscriptions/plans` · Auth: nahi
+
+Sirf active plans, display order mein (`sortOrder`, phir price). Khali ho to `data: []`.
+
+**Success 200:**
+
+```json
+{
+  "success": true,
+  "message": "Plans fetched",
+  "data": [
+    {
+      "_id": "6aca5a8eba00278d098a233d",
+      "name": "Yearly",
+      "type": "yearly",
+      "price": 1499,
+      "currency": "INR",
+      "durationInDays": 365,
+      "benefits": ["HD", "Ad free"],
+      "limitations": [],
+      "sortOrder": 1,
+      "isPopular": true
+    },
+    {
+      "_id": "6aca5a8eba00278d098a2337",
+      "name": "Monthly",
+      "type": "monthly",
+      "price": 199,
+      "currency": "INR",
+      "durationInDays": 30,
+      "benefits": ["HD"],
+      "limitations": [],
+      "sortOrder": 2,
+      "isPopular": false
+    }
+  ]
+}
+```
+
+- `isPopular: true` par "Most popular" tag dikhao.
+- `price` 0 wala plan (admin ka free plan) kharida nahi ja sakta. Uska "Buy" button mat dikhao.
+
+`GET /subscriptions/plans/:id` · Auth: nahi. Ek plan. Inactive / deleted plan par `404 Plan not found`, galat id par `422 Invalid plan Id`.
+
+### 4.2 My plan
+
+`GET /subscriptions/my` · Auth: haan
+
+**Success 200:**
+
+```json
+{
+  "success": true,
+  "message": "Subscription fetched",
+  "data": {
+    "isSubscribed": true,
+    "current": {
+      "_id": "6aca5aa1ba00278d098a2396",
+      "planId": "6aca5a8eba00278d098a2337",
+      "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": ["HD"] },
+      "status": "active",
+      "source": "purchase",
+      "startDate": "2026-10-10T15:32:48.543Z",
+      "endDate": "2026-11-09T15:32:48.543Z",
+      "daysLeft": 30,
+      "amountPaid": 19900,
+      "creditApplied": 0,
+      "paymentId": "6aca5a9eba00278d098a2388",
+      "platform": "web",
+      "createdAt": "2026-10-10T15:32:49.237Z"
+    },
+    "scheduled": [
+      {
+        "_id": "6aca5aabba00278d098a23c4",
+        "planId": "6aca5a8eba00278d098a2337",
+        "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": ["HD"] },
+        "status": "scheduled",
+        "source": "renewal",
+        "startDate": "2026-11-09T15:32:48.543Z",
+        "endDate": "2026-12-09T15:32:48.543Z",
+        "amountPaid": 19900,
+        "creditApplied": 0,
+        "previousSubscriptionId": "6aca5aa1ba00278d098a2396"
+      }
+    ],
+    "canRenew": false,
+    "upgradeEnabled": true,
+    "upgradeOptions": [
+      {
+        "plan": { "_id": "6aca5a8eba00278d098a233d", "name": "Yearly", "type": "yearly", "price": 1499, "currency": "INR", "durationInDays": 365, "benefits": [], "limitations": [], "sortOrder": 1, "isPopular": true },
+        "planPrice": 149900,
+        "creditApplied": 19899,
+        "payable": 130001,
+        "currency": "INR"
+      }
+    ]
+  }
+}
+```
+
+**Screen kaise banana hai:**
+
+| Field | UI |
+| --- | --- |
+| `isSubscribed: false` | "Aapka koi plan nahi hai" + plans list |
+| `current` | Plan naam, "Valid till {endDate}", "{daysLeft} din bache" |
+| `scheduled[0]` | "Renewal: {startDate} se shuru hoga" |
+| `canRenew: true` | **Renew** button (same plan, `planId = current.planId`) |
+| `upgradeEnabled: false` | Upgrade section mat dikhao |
+| `upgradeOptions` | Har option ka card: "{plan.name} par upgrade karo, sirf ₹{payable/100} do (₹{creditApplied/100} credit)" |
+
+### 4.3 Subscription history
+
+`GET /subscriptions/my/history?page=1&limit=10` · Auth: haan
+
+Saare periods (kharide, renew, upgrade, admin ke diye, cancel), naye pehle. Response paginated (`total`, `totalPages`, `page`, `limit`, `data`). Khali ho to `data: []`. `status` ke hisaab se badge dikhao.
+
+| Status | message |
+| --- | --- |
+| 422 | `Limit must be less than or equal to 100` |
+
+### 4.4 Quote (kitna dena hoga)
+
+`GET /payments/quote?planId=<planId>` · Auth: haan
+
+Plan card par click hone par ya confirm screen par call karo. Kuch save nahi hota.
+
+**Success 200 (upgrade):**
+
+```json
+{
+  "success": true,
+  "message": "Quote fetched",
+  "data": {
+    "purpose": "upgrade",
+    "planId": "6aca5a8eba00278d098a233d",
+    "plan": { "name": "Yearly", "type": "yearly", "price": 1499, "durationInDays": 365, "benefits": [] },
+    "planPrice": 149900,
+    "creditApplied": 13266,
+    "payable": 136634,
+    "currency": "INR",
+    "startsAt": "2026-10-10T15:33:28.398Z",
+    "endsAt": "2027-10-10T15:33:28.398Z",
+    "currentSubscriptionId": "6aca5ac7ba00278d098a2436"
+  }
+}
+```
+
+| purpose | Confirm screen par kya likhna hai |
+| --- | --- |
+| `new` | "{plan.name}: ₹{payable/100}. Aaj se {endsAt} tak" |
+| `renewal` | "Renew: ₹{payable/100}. {startsAt} se {endsAt} tak (current plan ke baad)" |
+| `upgrade` | "Upgrade: ₹{planPrice/100} − ₹{creditApplied/100} credit = ₹{payable/100}. Aaj se shuru" |
+
+**Errors:**
+
+| Status | message | UI |
+| --- | --- | --- |
+| 409 | `Upgrade is not available right now. You can buy this plan after your current plan ends on 9 Nov 2026.` | message dikhao, buy button disable |
+| 409 | `You can buy this plan after your current plan ends on 9 Nov 2026.` | sasta / dusra plan |
+| 409 | `You have already renewed this plan. You can renew again after 9 Nov 2026.` | |
+| 404 | `Plan not found or no longer available` | plan list refresh karo |
+| 422 | `This plan can't be purchased` | ₹0 plan |
+| 422 | `Plan Id is required` / `Invalid planId format` | |
+
+### 4.5 Order banao + Razorpay Checkout kholo
+
+`POST /payments/create-order` · Auth: haan · Body JSON
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| planId | string | haan | plan ka `_id` |
+| platform | string | haan | website se hamesha `web` |
+
+**Request:**
+
+```json
+{ "planId": "6aca5a8eba00278d098a2337", "platform": "web" }
+```
+
+**Success 201:**
+
+```json
+{
+  "success": true,
+  "message": "Order created",
+  "data": {
+    "payment": {
+      "_id": "6aca5a9bba00278d098a2380",
+      "purpose": "new",
+      "amount": 19900,
+      "planPrice": 19900,
+      "creditApplied": 0,
+      "currency": "INR",
+      "status": "created",
+      "receipt": "IFTV-261010-564775",
+      "razorpayOrderId": "order_PxYz123AbC",
+      "expiresAt": "2026-10-10T16:02:42.692Z",
+      "platform": "web"
+    },
+    "quote": { "purpose": "new", "planPrice": 19900, "creditApplied": 0, "payable": 19900, "currency": "INR", "startsAt": "2026-10-10T15:32:42.692Z", "endsAt": "2026-11-09T15:32:42.692Z" },
+    "checkout": {
+      "key": "rzp_live_xxxxxxxx",
+      "order_id": "order_PxYz123AbC",
+      "amount": 19900,
+      "currency": "INR",
+      "name": "IFTV-OTT",
+      "description": "Monthly (monthly)",
+      "prefill": { "name": "Rahul Sharma", "email": "rahul@example.com", "contact": "9876503602" },
+      "notes": { "receipt": "IFTV-261010-564775" }
+    }
+  }
+}
+```
+
+**Checkout kholna (checkout.js):**
+
+```html
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+```
+
+```js
+const { data } = await api.post("/payments/create-order", { planId, platform: "web" });
+
+const rzp = new window.Razorpay({
+  ...data.checkout,                 // key, order_id, amount, currency, name, description, prefill, notes
+  theme: { color: "#E50914" },
+  handler: async (resp) => {
+    // resp = { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+    const result = await api.post("/payments/verify", resp);
+    // result.data.subscription → success screen
+  },
+  modal: {
+    ondismiss: () =>
+      api.post("/payments/failed", { razorpay_order_id: data.checkout.order_id, reason: "User closed checkout" }),
+  },
+});
+rzp.on("payment.failed", (e) =>
+  api.post("/payments/failed", { razorpay_order_id: data.checkout.order_id, reason: e.error?.description })
+);
+rzp.open();
+```
+
+> `amount` khud mat badlo. Server ka diya `checkout` waisa hi Razorpay ko do.
+
+**Errors:**
+
+| Status | message | UI |
+| --- | --- | --- |
+| 409 / 404 / 422 | Quote wale errors | message dikhao |
+| 422 | `Platform is required` | |
+| 502 | `Could not start the payment. Please try again.` | dobara try button |
+| 503 | `Payments are not available right now. Please try again later.` | payment abhi band hai |
+
+Naya order banane par user ka purana unpaid order apne aap `expired` ho jaata hai. Har "Buy" click par naya order banao.
+
+### 4.6 Payment verify
+
+`POST /payments/verify` · Auth: haan · Body JSON
+
+Razorpay `handler` jo 3 values deta hai, wahi bhejo:
+
+```json
+{
+  "razorpay_order_id": "order_PxYz123AbC",
+  "razorpay_payment_id": "pay_Qw12Er34Ty",
+  "razorpay_signature": "9f2c...64 hex chars"
+}
+```
+
+**Success 200:**
+
+```json
+{
+  "success": true,
+  "message": "Payment verified, plan activated",
+  "data": {
+    "alreadyProcessed": false,
+    "payment": {
+      "_id": "6aca5a9eba00278d098a2388",
+      "status": "paid",
+      "amount": 19900,
+      "receipt": "IFTV-261010-464227",
+      "method": "upi",
+      "paidAt": "2026-10-10T15:32:48.543Z",
+      "razorpayPaymentId": "pay_Qw12Er34Ty",
+      "userSubscriptionId": "6aca5aa1ba00278d098a2396"
+    },
+    "subscription": {
+      "_id": "6aca5aa1ba00278d098a2396",
+      "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": ["HD"] },
+      "status": "active",
+      "source": "purchase",
+      "startDate": "2026-10-10T15:32:48.543Z",
+      "endDate": "2026-11-09T15:32:48.543Z",
+      "daysLeft": 30
+    }
+  }
+}
+```
+
+- Renewal mein `subscription.status` = `scheduled` aata hai ("{startDate} se shuru hoga").
+- Dobara call karo to bhi same result (`alreadyProcessed: true`), double charge / double plan nahi hota.
+
+**Errors:**
+
+| Status | message | UI |
+| --- | --- | --- |
+| 400 | `Payment verification failed. If money was deducted, your plan will be activated automatically in a few minutes.` | yahi message dikhao, "My plan" par bhejo |
+| 402 | `Payment is not complete yet. If money was deducted, ...` | same |
+| 400 | `Payment amount does not match the order` | support se contact |
+| 404 | `Payment not found` | |
+| 409 | `This order is already paid` | `/subscriptions/my` refresh |
+
+### 4.7 Payment fail / band
+
+`POST /payments/failed` · Auth: haan · Body: `{ "razorpay_order_id": "order_...", "reason": "User closed checkout" }`
+
+`reason` optional (max 500). Paid order par kuch nahi badalta. Response mein payment aata hai. Unknown order par `404 Payment not found`.
+
+### 4.8 Transactions
+
+`GET /payments/my?page=1&limit=10&status=paid` · Auth: haan
+
+`status` optional: `created`, `paid`, `failed`, `expired`. Khali ho to `data: []`.
+
+| Payment field | Kya dikhana hai |
+| --- | --- |
+| receipt | "Receipt no." |
+| plan.name | plan |
+| amount | ₹{amount/100} |
+| status | `paid` ✅ / `failed` ❌ / `expired` ("adhoora") / `created` ("pending") |
+| purpose | `new` / `renewal` / `upgrade` |
+| creditApplied | upgrade mein "₹X credit laga" |
+| method | upi / card / netbanking / wallet |
+| failureReason | failed mein |
+| paidAt / createdAt | date |
+
+`GET /payments/my/:id` · Auth: haan. Ek payment (receipt page) + `subscription` (jo period kharida). Dusre user ka payment ho to `404 Payment not found`.
+
+---
+
+## 5. Movies: free / paid lock
+
+Har movie ab `free` ya `paid` hoti hai. Purani saari movies free hain. Admin kisi movie ko paid kar sakta hai aur bata sakta hai ki wo kin plans mein milegi.
+
+`GET /movies/getAll` aur `GET /movies/:id/get` mein **token optional** hai. Login user ho to `Authorization: Bearer <token>` **zaroor bhejo**, warna paid movies locked aayengi. Token galat / expire ho to bhi API chalti hai (guest ki tarah).
+
+Har movie mein ye fields aate hain:
+
+| Field | Type | Kya hai |
+| --- | --- | --- |
+| accessType | `free` / `paid` | |
+| allowedPlans | string[] | paid movie kin plan ids mein hai (khali = har plan mein) |
+| isLocked | boolean | `true` → play mat karo. Tab `video` = `null` |
+| lockReason | string \| null | neeche table |
+| availableInPlans | array | paid movie ke liye: kaun se plans ise unlock karte hain `[{ _id, name, type, price, durationInDays }]` |
+
+| lockReason | UI |
+| --- | --- |
+| `null` | play button |
+| `login_required` | "Login karke dekho" → login page |
+| `subscription_required` | "Plan lo" → plans page |
+| `plan_not_included` | "Ye movie {availableInPlans[].name} plan mein hai" → upgrade / us plan ka page |
+
+**Locked movie (example):**
+
+```json
+{
+  "_id": "6aca58db4d19773e91732a65",
+  "title": "Paid yearly",
+  "accessType": "paid",
+  "allowedPlans": ["6aca5a8eba00278d098a233d"],
+  "video": null,
+  "isLocked": true,
+  "lockReason": "plan_not_included",
+  "availableInPlans": [
+    { "_id": "6aca5a8eba00278d098a233d", "name": "Yearly", "type": "yearly", "price": 1499, "durationInDays": 365 }
+  ]
+}
+```
+
+Card par paid movie ke liye 🔒 / "Premium" badge dikhao (`accessType === "paid"`), aur `isLocked` ho to play ki jagah upar wala CTA.
+
+`GET /movies/getAll?accessType=free` ya `?accessType=paid` se filter bhi kar sakte ho (galat value par `422 Access Type must be one of [free, paid]`).
+
+---
+
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme OTP login (mobile + email), Support (Contact Us + tickets) aur Gallery hain.
+- **2026-10-10:** Subscription + Razorpay payment (section 4) aur Movies free / paid lock (section 5) add kiye.

@@ -2,11 +2,14 @@
 
 Last update: 2026-10-10 · Index: [README.md](README.md)
 
-Ye doc admin panel team ke liye hai. Isme 3 features hain:
+Ye doc admin panel team ke liye hai. Isme 6 features hain:
 
 1. [Auth: admin / staff login](#1-auth-admin--staff-login)
 2. [Support inbox](#2-support-inbox) (tickets + Contact Us messages)
 3. [Gallery management](#3-gallery-management) (images, GIFs, videos)
+4. [Subscriptions: plans, settings, users](#4-subscriptions-plans-settings-users)
+5. [Payments](#5-payments) (transactions, sync, dashboard stats)
+6. [Movies: free / paid](#6-movies-free--paid)
 
 ---
 
@@ -41,8 +44,8 @@ Error aaye to `message` ko toast mein dikhao.
 
 | Role | Admin panel |
 | --- | --- |
-| `admin` | Support aur Gallery, sab kuch |
-| `staff` | Abhi admin jaisa hi: Support aur Gallery sab kuch |
+| `admin` | Support, Gallery, Subscriptions, Payments: sab kuch |
+| `staff` | Support aur Gallery sab kuch. Subscriptions / Payments sirf dekh sakta hai (badlav par 403) |
 | `user` | Admin panel ke har API par **403** milta hai |
 
 ### Token
@@ -74,6 +77,8 @@ Error aaye to `message` ko toast mein dikhao.
 ### Khali list = 404
 
 List APIs par koi record na ho (ya filter se kuch match na ho) to **404** `No any ... found` aata hai. Isko error mat dikhao, table mein "No data" dikhao.
+
+**Exception:** subscription aur payment ki nayi admin lists (`/subscriptions/admin/users`, `/payments/admin/getAll`) khali hone par **200** + `data: []` deti hain.
 
 ### Dates
 
@@ -939,8 +944,286 @@ Item soft delete hota hai aur uski **files Cloudflare se bhi delete** ho jaati h
 - **Bulk upload:** multi-select images/GIFs (3.3).
 - **Edit:** text fields, media replace, poster replace / remove.
 
+## 4. Subscriptions: plans, settings, users
+
+Plan doc: `server/docs/subscription-payments-plan.md`. Payment ka hisaab section 5 mein hai.
+
+### Paise ka rule
+
+| Kahan | Unit |
+| --- | --- |
+| Plan ka `price` (form, list, `plan.price`) | **rupees**, GST shamil |
+| Payments aur subscriptions ke amounts: `amount`, `planPrice`, `creditApplied`, `amountPaid`, `totalPaid`, revenue | **paise** (`19900` = ₹199). Dikhate waqt `/ 100` |
+
+### Kaun kya kar sakta hai
+
+| Kaam | admin | staff |
+| --- | :---: | :---: |
+| Plans dekhna (`get-all`, `get`) | ✅ | ✅ (ye bina token bhi chalte hain) |
+| Plan add / update / delete | ✅ | ❌ 403 |
+| User subscriptions, settings, payments, stats dekhna | ✅ | ✅ |
+| Free plan dena (grant), cancel, upgrade setting badalna, payment sync | ✅ | ❌ 403 |
+
+> ⚠️ **Badlav:** `POST /subscriptions/add` aur `DELETE /subscriptions/delete/:id` par ab **admin token zaroori** hai (pehle bina token chalte the). Bina token `401`, staff / user token par `403`.
+
+### 4.1 Plan banao
+
+`POST /subscriptions/add` · Auth: admin · Body JSON
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| name | string | haan | 3–120. Name + type unique |
+| description | string | nahi | max 500 |
+| price | number | haan | ≥ 0, rupees (GST shamil). ₹1 se kam (jaise 0) wala plan user kharid nahi sakta, sirf grant ho sakta hai |
+| type | enum | haan | `weekly`, `monthly`, `quarterly`, `half_yearly`, `yearly` (duration 7 / 30 / 90 / 180 / 365 din apne aap) |
+| benefits | string[] | nahi | |
+| limitations | string[] | nahi | |
+| sortOrder | number | nahi | default 0. Web / app par chhota pehle |
+| isPopular | boolean | nahi | default false ("Most popular" tag) |
+| isActive | boolean | nahi | default true. false = web / app par nahi dikhega |
+
+```json
+{ "name": "Monthly", "description": "HD on 1 device", "price": 199, "type": "monthly", "benefits": ["HD", "Ad free"], "sortOrder": 2, "isPopular": false }
+```
+
+**Errors:** 422 validation (`Name is required`, `Type must be one of [...]`, ...) · 409 `Subscription with this name for monthly plan already exists` · 401 / 403.
+
+### 4.2 Plans list / ek plan
+
+- `GET /subscriptions/get-all?page=1&limit=10` · Auth: nahi (pehle jaisa). Inactive plans bhi aate hain. Filters: `search`, `name`, `type`, `isActive`, `price`, `minPrice`, `maxPrice`, `fromDate`, `toDate`. Khali par `404 No any subscription found` (pehle jaisa). Anjaan query keys ab ignore hoti hain.
+- `GET /subscriptions/get/:id` · Auth: nahi. Galat id par ab `422 Invalid Subscription Id` (pehle 500).
+
+### 4.3 Plan update
+
+`PUT /subscriptions/update/:id` · Auth: admin · Body JSON (sirf jo badalna hai, kam se kam 1 field)
+
+Fields create jaise: `name`, `description`, `price`, `type`, `benefits`, `limitations`, `sortOrder`, `isPopular`, `isActive`. `type` badalne par `durationInDays` bhi badal jaata hai.
+
+> Naya price sirf **naye purchases** par lagta hai. Jo users pehle kharid chuke, unka plan aur history purane price par hi rehta hai.
+
+```json
+{ "price": 249, "isPopular": true }
+```
+
+**Errors:** 422 `Nothing to update` / `Invalid Subscription Id` · 404 `Subscription not found` · 409 duplicate name + type · 401 / 403.
+
+### 4.4 Plan delete
+
+`DELETE /subscriptions/delete/:id` · Auth: admin
+
+Soft delete. Jin users ke paas ye plan active hai, unka plan end date tak chalta rahega. Errors: 422 `Invalid Subscription Id` · 404 `Subscription not found` · 401 / 403.
+
+### 4.5 Upgrade setting
+
+`GET /subscriptions/admin/settings` · Auth: admin / staff
+`PUT /subscriptions/admin/settings` · Auth: admin · Body `{ "allowUpgrade": true }`
+
+```json
+{ "success": true, "message": "Subscription settings fetched", "data": { "allowUpgrade": false, "updatedBy": null, "updatedAt": null } }
+```
+
+- `allowUpgrade: false` (default): user active plan ke beech mehenga plan nahi le sakta, current plan khatam hone ke baad hi.
+- `allowUpgrade: true`: user kabhi bhi mehenge plan par ja sakta hai. Naya plan turant shuru, purane plan ke bache din ka paisa credit.
+- Settings page par ek toggle "Users ko plan upgrade karne do". Errors: 422 `Allow Upgrade is required` · 403 (staff).
+
+### 4.6 Saare user subscriptions
+
+`GET /subscriptions/admin/users` · Auth: admin / staff
+
+| Query | Rules |
+| --- | --- |
+| page, limit | limit max 100 |
+| status | `active`, `scheduled`, `expired`, `upgraded`, `cancelled` |
+| planId, userId | ObjectId |
+| source | `purchase`, `renewal`, `upgrade`, `admin_grant` |
+| platform | `web`, `android`, `ios` |
+| search | user ka naam / email / mobile, ya plan naam |
+| fromDate, toDate | createdAt |
+| sortBy | `createdAt` (default), `startDate`, `endDate` |
+| sortOrder | `asc` / `desc` |
+
+Khali par `200` + `data: []`.
+
+**Ek row:**
+
+```json
+{
+  "_id": "6aca5acdba00278d098a2453",
+  "userId": "6aca5a8bba00278d098a2329",
+  "planId": "6aca5a8eba00278d098a2337",
+  "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": ["HD"] },
+  "status": "active",
+  "source": "purchase",
+  "startDate": "2026-10-10T15:33:32.827Z",
+  "endDate": "2026-11-09T15:33:32.827Z",
+  "daysLeft": 30,
+  "paymentId": "6aca5acbba00278d098a244c",
+  "amountPaid": 19900,
+  "creditApplied": 0,
+  "platform": "android",
+  "createdAt": "2026-10-10T15:33:33.113Z",
+  "user": { "_id": "6aca5a8bba00278d098a2329", "name": "Amit Kumar", "email": "amit@example.com", "mobile": 9876503922 }
+}
+```
+
+Admin grant / cancel wali rows mein `grantedBy`, `note`, `cancelledBy`, `cancelReason`, `cancelledAt`, `endedAt` bhi aate hain.
+
+### 4.7 Ek user ka subscription page
+
+`GET /subscriptions/admin/users/:userId` · Auth: admin / staff
+
+Response: `user` (name, email, mobile, role), `isSubscribed`, `current`, `scheduled[]`, `history[]` (latest 100), `payments: { totalPaid (paise), paymentsCount, lastPaymentAt }`. Errors: 422 `Invalid user Id` · 404 `User not found`.
+
+### 4.8 Free plan do (grant)
+
+`POST /subscriptions/admin/grant` · Auth: admin · Body JSON
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| userId | string | haan | |
+| planId | string | haan | koi bhi plan jo delete nahi hua (inactive bhi chalega) |
+| days | number | nahi | 1–3650. Default plan ki duration |
+| note | string | nahi | max 500, internal |
+
+User ka koi plan chal raha ho to grant uske khatam hone ke baad shuru hota hai (`status: scheduled`), warna turant (`active`). Granted plan se upgrade karne par credit nahi milta.
+
+```json
+{ "userId": "6aca5a8bba00278d098a2327", "planId": "6aca5a8eba00278d098a2337", "days": 30, "note": "promo" }
+```
+
+Errors: 422 `Plan Id is required` / `Invalid userId format` · 404 `User not found` / `Plan not found` · 403 (staff).
+
+### 4.9 Subscription cancel
+
+`PUT /subscriptions/admin/cancel/:id` · Auth: admin · Body `{ "reason": "Chargeback" }` (reason optional, max 500)
+
+`:id` = subscription period ka `_id` (list / user page se). Sirf `active` ya `scheduled` period cancel hota hai, turant. **Refund nahi hota** (refund baad mein aayega). Uske peeche queue wala renewal aage khisak jaata hai, taaki user ko gap na mile.
+
+Errors: 422 `Invalid Subscription Id` · 404 `Subscription not found` · 409 `Only active or scheduled subscriptions can be cancelled` · 403 (staff).
+
+---
+
+## 5. Payments
+
+Razorpay ke saare transactions. Users web aur Android se kharidte hain (iOS app se nahi).
+
+| Field | Kya hai |
+| --- | --- |
+| receipt | `IFTV-YYMMDD-XXXXXX` |
+| purpose | `new`, `renewal`, `upgrade` |
+| plan | kharidte waqt ka plan |
+| amount / planPrice / creditApplied | paise. `amount = planPrice − creditApplied` |
+| status | `created` (checkout khula, pay nahi hua), `paid`, `failed`, `expired` (30 min mein pay nahi hua / naya order bana) |
+| method | `upi`, `card`, `netbanking`, `wallet` |
+| razorpayOrderId, razorpayPaymentId | Razorpay dashboard mein search ke liye |
+| failureReason | failed mein |
+| userSubscriptionId | paid hone par jo period bana |
+| user | `{ _id, name, email, mobile }` (list mein) |
+
+### 5.1 Transactions list
+
+`GET /payments/admin/getAll` · Auth: admin / staff
+
+Query: `page`, `limit`, `status`, `purpose`, `planId`, `userId`, `method`, `platform`, `search` (receipt, Razorpay order / payment id, user naam / email / mobile), `fromDate`, `toDate`, `sortBy` (`createdAt` / `paidAt` / `amount`), `sortOrder`. Khali par `200` + `data: []`.
+
+```json
+{
+  "_id": "6aca5ac2ba00278d098a2419",
+  "plan": { "name": "Weekly", "type": "weekly", "price": 59, "durationInDays": 7, "benefits": [] },
+  "purpose": "new",
+  "amount": 5900,
+  "planPrice": 5900,
+  "creditApplied": 0,
+  "currency": "INR",
+  "status": "paid",
+  "receipt": "IFTV-261010-341773",
+  "razorpayOrderId": "order_6ffc481bf93183",
+  "razorpayPaymentId": "pay_38638637a4e591",
+  "method": "upi",
+  "platform": "web",
+  "paidAt": "2026-10-10T15:33:24.174Z",
+  "createdAt": "2026-10-10T15:33:22.701Z",
+  "userSubscriptionId": "6aca5ac4ba00278d098a2421",
+  "user": { "_id": "6aca5a8aba00278d098a2321", "name": "Priya Verma", "email": "priya@example.com", "mobile": 9876501027 }
+}
+```
+
+### 5.2 Transaction detail
+
+`GET /payments/admin/get/:id` · Auth: admin / staff
+
+Payment + `user` + `subscription` + `razorpay` (Razorpay ka live payment record). Razorpay se connect na ho to `razorpay: null` aur `razorpayError` aata hai, page phir bhi khulta hai. Errors: 422 `Invalid Payment Id` · 404 `Payment not found`.
+
+### 5.3 Razorpay se sync
+
+`POST /payments/admin/sync/:id` · Auth: admin
+
+Support case: "paisa kat gaya par plan chalu nahi hua". Detail page par **Sync** button. Server Razorpay se order check karta hai:
+
+- captured payment mila → plan chalu, `changed: true`, `payment.status: paid`
+- saare attempts fail → `payment.status: failed`
+- kuch nahi badla → `changed: false`
+
+```json
+{ "success": true, "message": "Payment synced with Razorpay", "data": { "changed": true, "payment": { "status": "paid", "receipt": "IFTV-261010-778812", "userSubscriptionId": "6aca5ad4ba00278d098a2463" } } }
+```
+
+Errors: 404 `Payment not found` · 409 `Payment amount does not match the order` · 502 (Razorpay down) · 403 (staff).
+
+### 5.4 Dashboard stats
+
+`GET /payments/admin/stats?fromDate=2026-10-01&toDate=2026-10-31` · Auth: admin / staff (dates optional)
+
+```json
+{
+  "currency": "INR",
+  "revenue": {
+    "today": { "amount": 221401, "count": 7 },
+    "thisMonth": { "amount": 221401, "count": 7 },
+    "range": { "amount": 221401, "count": 7 },
+    "allTime": { "amount": 221401, "count": 7 }
+  },
+  "paymentsByStatus": { "created": 0, "paid": 7, "failed": 2, "expired": 2 },
+  "paidByPurpose": { "new": 5, "renewal": 1, "upgrade": 1 },
+  "revenueByPlan": [
+    { "planId": "6aca5a8eba00278d098a233d", "name": "Yearly", "type": "yearly", "count": 1, "revenue": 130001 },
+    { "planId": "6aca5a8eba00278d098a2337", "name": "Monthly", "type": "monthly", "count": 4, "revenue": 79600 }
+  ],
+  "activeSubscribers": 8,
+  "activeSubscribersByPlan": [
+    { "planId": "6aca5a8eba00278d098a2337", "name": "Monthly", "count": 5 },
+    { "planId": "6aca5a8eba00278d098a233d", "name": "Yearly", "count": 1 }
+  ]
+}
+```
+
+- `today` / `thisMonth` IST ke hisaab se. `range` fromDate–toDate (paidAt) par; dates na do to all time.
+- Cards: Aaj ki kamai, Is mahine, Active subscribers, Failed payments. Charts: revenue by plan, subscribers by plan.
+
+---
+
+## 6. Movies: free / paid
+
+Movie create / update mein do naye fields:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| accessType | `free` / `paid` | default `free`. Purani saari movies free hain |
+| allowedPlans | string[] (plan ids) | sirf paid movie ke liye: kin plans wale dekh sakte hain. **Khali = har active plan wala**. Free movie par apne aap khali ho jaata hai. Max 50. form-data mein comma-separated, repeat key, `allowedPlans[]` ya JSON array; khali value bhejo to list clear |
+
+**Form UI:** "Access" radio (Free / Paid). Paid chuna to plans ka multi-select (plans `GET /subscriptions/get-all?isActive=true` se), helper text "Kuch nahi chuna = sab plans".
+
+```json
+{ "accessType": "paid", "allowedPlans": ["6aca5a8eba00278d098a233d"] }
+```
+
+Errors: 422 `Access Type must be one of [free, paid]` / `One or more plans in allowedPlans were not found`.
+
+> ⚠️ **Movies list / detail par admin token bhejo.** `GET /movies/getAll` aur `GET /movies/:id/get` ab token dekhte hain. Bina token paid movies `isLocked: true` aur `video: null` ke saath aati hain. Admin / staff token ho to sab unlocked aata hai. Har movie mein `accessType`, `allowedPlans`, `isLocked`, `lockReason`, `availableInPlans` fields aate hain. List filter: `?accessType=free` / `?accessType=paid`.
+
 ---
 
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme admin/staff login, Support inbox aur Gallery management hain.
+- **2026-10-10:** Subscriptions (plans, upgrade setting, user subscriptions, grant, cancel), Payments (list, detail, sync, stats) aur Movies free / paid add kiye. Plan add / delete par ab admin token zaroori hai.

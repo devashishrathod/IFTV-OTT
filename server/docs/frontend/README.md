@@ -13,9 +13,9 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 
 | Doc | Kis team ke liye | Features |
 | --- | --- | --- |
-| [web-api.md](web-api.md) | Website (React / Next.js) | OTP login, Support (Contact Us + Tickets), Gallery |
-| [app-api.md](app-api.md) | Android / iOS app | OTP login, Support (Tickets), Gallery |
-| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management |
+| [web-api.md](web-api.md) | Website (React / Next.js) | OTP login, Support (Contact Us + Tickets), Gallery, Subscription + Razorpay, Movies lock |
+| [app-api.md](app-api.md) | Android / iOS app | OTP login, Support (Tickets), Gallery, Subscription + Razorpay (Android), Movies lock |
+| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management, Subscriptions, Payments, Movies free / paid |
 
 ## Kaunsa API kis doc mein hai
 
@@ -49,8 +49,35 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 | Gallery | `PUT /gallery/admin/update/:id` | | | ✅ |
 | Gallery | `PUT /gallery/admin/reorder` | | | ✅ |
 | Gallery | `DELETE /gallery/admin/delete/:id` | | | ✅ |
+| Subscription | `GET /subscriptions/plans` (bina login) | ✅ | ✅ | |
+| Subscription | `GET /subscriptions/plans/:id` (bina login) | ✅ | ✅ | |
+| Subscription | `GET /subscriptions/my` | ✅ | ✅ | |
+| Subscription | `GET /subscriptions/my/history` | ✅ | ✅ | |
+| Subscription | `POST /subscriptions/add` (admin token) | | | ✅ |
+| Subscription | `GET /subscriptions/get-all` | | | ✅ |
+| Subscription | `GET /subscriptions/get/:id` | | | ✅ |
+| Subscription | `PUT /subscriptions/update/:id` | | | ✅ |
+| Subscription | `DELETE /subscriptions/delete/:id` (admin token) | | | ✅ |
+| Subscription | `GET /subscriptions/admin/settings` | | | ✅ |
+| Subscription | `PUT /subscriptions/admin/settings` | | | ✅ |
+| Subscription | `GET /subscriptions/admin/users` | | | ✅ |
+| Subscription | `GET /subscriptions/admin/users/:userId` | | | ✅ |
+| Subscription | `POST /subscriptions/admin/grant` | | | ✅ |
+| Subscription | `PUT /subscriptions/admin/cancel/:id` | | | ✅ |
+| Payment | `GET /payments/quote` | ✅ | ✅ | |
+| Payment | `POST /payments/create-order` (iOS se nahi) | ✅ | ✅ | |
+| Payment | `POST /payments/verify` | ✅ | ✅ | |
+| Payment | `POST /payments/failed` | ✅ | ✅ | |
+| Payment | `GET /payments/my` | ✅ | ✅ | |
+| Payment | `GET /payments/my/:id` | ✅ | ✅ | |
+| Payment | `GET /payments/admin/getAll` | | | ✅ |
+| Payment | `GET /payments/admin/get/:id` | | | ✅ |
+| Payment | `POST /payments/admin/sync/:id` | | | ✅ |
+| Payment | `GET /payments/admin/stats` | | | ✅ |
+| Movies | `GET /movies/getAll`, `GET /movies/:id/get` (optional token, lock fields) | ✅ | ✅ | ✅ |
+| Movies | `POST /movies/add`, `PUT /movies/update/:id` (`accessType`, `allowedPlans`) | | | ✅ |
 
-**Abhi in docs mein nahi hai:** Register, password login (user ke liye), Users profile, Categories, SubCategories, Banners, Movies aur Subscriptions. Inki details Postman collection mein hain. Jaise-jaise ye final hote jaayenge, inke sections bhi yahan add honge.
+**Abhi in docs mein nahi hai:** Register, password login (user ke liye), Users profile, Categories, SubCategories, Banners, aur Movies ke baaki APIs (sirf free / paid lock wala hissa docs mein hai). Razorpay webhook (`POST /payments/webhook`) sirf server-to-server hai, Postman mein hai. Inki details Postman collection mein hain. Jaise-jaise ye final hote jaayenge, inke sections bhi yahan add honge.
 
 ## Saath mein Postman
 
@@ -67,3 +94,4 @@ Jab bhi koi naya API bane ya kisi API mein change ho:
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme OTP login (mobile + email), Support (Contact Us, tickets, admin inbox) aur Gallery (public + admin) hain.
+- **2026-10-10:** Subscription + Razorpay payments (web, app, admin) aur Movies free / paid lock add kiye.
