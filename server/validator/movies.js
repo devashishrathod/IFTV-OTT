@@ -1,9 +1,29 @@
 const Joi = require("joi");
 const objectId = require("./validJoiObjectId");
 const { throwError } = require("../utils");
-const { STREAM_MAX_DURATION_SECONDS } = require("../constants");
+const {
+  STREAM_MAX_DURATION_SECONDS,
+  MOVIE_ACCESS_TYPES,
+  SUBSCRIPTION_LIMITS,
+} = require("../constants");
 
-const LIST_FIELDS = ["casts", "languages"];
+const LIST_FIELDS = ["casts", "languages", "allowedPlans"];
+
+const accessType = Joi.string()
+  .valid(...Object.values(MOVIE_ACCESS_TYPES))
+  .optional();
+
+// Plans that include a paid movie. Multipart may send one id or a list;
+// an empty value clears the list (see normalizeListFields).
+const allowedPlans = Joi.alternatives()
+  .try(
+    Joi.array()
+      .items(objectId())
+      .max(SUBSCRIPTION_LIMITS.MAX_PLAN_LINKS_PER_MOVIE),
+    objectId().custom((value) => [value])
+  )
+  .optional()
+  .messages({ "alternatives.match": "allowedPlans must be a list of plan ids" });
 
 /**
  * Multipart forms send lists in different shapes. Normalize them all to an
@@ -20,6 +40,11 @@ const normalizeListFields = (data) => {
     const value = body[field];
     if (typeof value !== "string") return;
     const trimmed = value.trim();
+    // An empty allowedPlans clears the list
+    if (field === "allowedPlans" && trimmed === "") {
+      body[field] = [];
+      return;
+    }
     if (trimmed.startsWith("[")) {
       try {
         const parsed = JSON.parse(trimmed);
@@ -103,6 +128,8 @@ exports.validateCreateMovie = (data) => {
       .optional()
       .messages({ "string.pattern.base": "Invalid videoUid" }),
     isActive: Joi.boolean().optional(),
+    accessType,
+    allowedPlans,
   }).oxor("videoUid", "videoUrl");
   return schema.validate(data, { abortEarly: false });
 };
@@ -170,6 +197,8 @@ exports.validateUpdateMovie = (data) => {
       .optional()
       .messages({ "string.pattern.base": "Invalid videoUid" }),
     isActive: Joi.boolean().optional(),
+    accessType,
+    allowedPlans,
   }).oxor("videoUid", "videoUrl");
   return schema.validate(data, { abortEarly: false });
 };
@@ -204,6 +233,7 @@ exports.validateGetAllMoviesQuery = (payload) => {
     toDate: Joi.date().iso().optional(),
     sortBy: Joi.string().optional(),
     sortOrder: Joi.string().valid("asc", "desc").optional(),
+    accessType,
   });
   return getAllQuerySchema.validate(payload, { abortEarly: false });
 };

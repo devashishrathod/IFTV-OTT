@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node \"C:\\\\Users\\\\acar\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-acar-OneDrive-Documents-GitHub-IFTV-OTT\\\\a4dd5ba3-a4ad-4f6a-b331-21c1cfb33e0c\\\\scratchpad\\\\count-admins.js\")",
+      "Bash(cd \"c:/Users/acar/OneDrive/Documents/GitHub/IFTV-OTT/server\" && ls -R services/cloudflare controllers/cloudflare && cat configs/cloudflare.js configs/cloudinary.js && sed 's/=.*/=***/' .env && cat routes/cloudflare.js 2>/dev/null; ls routes)"
+    ]
+  }
+}

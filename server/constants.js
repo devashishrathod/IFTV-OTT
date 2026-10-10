@@ -42,12 +42,6 @@ module.exports = {
     Family: "family",
   }),
 
-  PRODUCT_TYPES: Object.freeze({
-    GROCERY: "grocery",
-    ELECTRONICS: "electronics",
-    CLOTHING: "clothing",
-  }),
-
   ZIP_CODE_REGEX_MAP: Object.freeze({
     IN: /^[1-9][0-9]{5}$/, // India (6 digits)
     US: /^\d{5}(-\d{4})?$/, // USA (ZIP or ZIP+4)
@@ -115,9 +109,137 @@ module.exports = {
     ".png",
     ".webp",
     ".gif",
-    ".avif",
   ]),
 
   // Cloudflare Stream: max duration reserved per direct upload (6h is CF max).
   STREAM_MAX_DURATION_SECONDS: 21600,
+
+  SUPPORT_SOURCES: Object.freeze({
+    TICKET: "ticket",
+    CONTACT_US: "contact_us",
+  }),
+
+  SUPPORT_CATEGORIES: Object.freeze({
+    PAYMENT: "payment",
+    SUBSCRIPTION: "subscription",
+    PLAYBACK: "playback",
+    ACCOUNT: "account",
+    CONTENT_REQUEST: "content_request",
+    FEEDBACK: "feedback",
+    OTHER: "other",
+  }),
+
+  SUPPORT_STATUSES: Object.freeze({
+    OPEN: "open",
+    IN_PROGRESS: "in_progress",
+    RESOLVED: "resolved",
+    CLOSED: "closed",
+  }),
+
+  SUPPORT_PRIORITIES: Object.freeze({
+    LOW: "low",
+    MEDIUM: "medium",
+    HIGH: "high",
+  }),
+
+  SUPPORT_LIMITS: Object.freeze({
+    MAX_ATTACHMENTS: 3,
+    MAX_ATTACHMENT_SIZE_MB: 5,
+    ALLOWED_ATTACHMENT_EXTENSIONS: Object.freeze([
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+    ]),
+    ALLOWED_ATTACHMENT_MIME_TYPES: Object.freeze([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]),
+    MAX_SUBJECT_LENGTH: 150,
+    MAX_MESSAGE_LENGTH: 2000,
+    MAX_OPEN_TICKETS_PER_USER: 5,
+    MAX_CONTACT_US_PER_EMAIL_PER_DAY: 3,
+  }),
+
+  // One subscription period a user holds (models/UserSubscription.js)
+  USER_SUBSCRIPTION_STATUSES: Object.freeze({
+    ACTIVE: "active",
+    SCHEDULED: "scheduled",
+    EXPIRED: "expired",
+    UPGRADED: "upgraded",
+    CANCELLED: "cancelled",
+  }),
+
+  SUBSCRIPTION_SOURCES: Object.freeze({
+    PURCHASE: "purchase",
+    RENEWAL: "renewal",
+    UPGRADE: "upgrade",
+    ADMIN_GRANT: "admin_grant",
+  }),
+
+  PAYMENT_PURPOSES: Object.freeze({
+    NEW: "new",
+    RENEWAL: "renewal",
+    UPGRADE: "upgrade",
+  }),
+
+  PAYMENT_STATUSES: Object.freeze({
+    CREATED: "created",
+    PAID: "paid",
+    FAILED: "failed",
+    EXPIRED: "expired",
+  }),
+
+  PAYMENT_PROVIDERS: Object.freeze({
+    RAZORPAY: "razorpay",
+  }),
+
+  PAYMENT_LIMITS: Object.freeze({
+    CURRENCY: "INR",
+    // Razorpay does not accept orders below ₹1
+    MIN_AMOUNT_PAISE: 100,
+    ORDER_EXPIRY_MINUTES: 30,
+    MAX_FAILURE_REASON_LENGTH: 500,
+  }),
+
+  SUBSCRIPTION_LIMITS: Object.freeze({
+    MAX_SCHEDULED: 1,
+    // Expiry reminder mails, days before the plan ends
+    REMINDER_DAYS: Object.freeze([3, 1]),
+    MAX_GRANT_DAYS: 3650,
+    MAX_NOTE_LENGTH: 500,
+    MAX_PLAN_LINKS_PER_MOVIE: 50,
+  }),
+
+  MOVIE_ACCESS_TYPES: Object.freeze({
+    FREE: "free",
+    PAID: "paid",
+  }),
+
+  MOVIE_LOCK_REASONS: Object.freeze({
+    LOGIN_REQUIRED: "login_required",
+    SUBSCRIPTION_REQUIRED: "subscription_required",
+    PLAN_NOT_INCLUDED: "plan_not_included",
+  }),
+
+  GALLERY_MEDIA_TYPES: Object.freeze({
+    IMAGE: "image",
+    GIF: "gif",
+    VIDEO: "video",
+  }),
+
+  GALLERY_LIMITS: Object.freeze({
+    MAX_TITLE_LENGTH: 150,
+    MAX_DESCRIPTION_LENGTH: 1000,
+    MAX_TAGS: 10,
+    MAX_TAG_LENGTH: 30,
+    // Cloudflare Images rejects files above 10 MB
+    MAX_IMAGE_SIZE_MB: 10,
+    MAX_BULK_FILES: 10,
+    MAX_REORDER_ITEMS: 100,
+    DEFAULT_PAGE_LIMIT: 20,
+    MAX_PAGE_LIMIT: 50,
+    MAX_ADMIN_PAGE_LIMIT: 100,
+  }),
 };
