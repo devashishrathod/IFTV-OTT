@@ -1,21 +1,23 @@
 const fs = require("fs");
-const {
-  uploadFile,
-  deleteFile,
-  getOptimizedImageUrl,
-} = require("../../helpers/cloudinary");
+const { uploadFile, deleteFile } = require("../../helpers/cloudinary");
 const {
   uploadStreamVideo,
   deleteStreamVideo,
   isCloudflareStreamUrl,
 } = require("../cloudflare/stream");
+const {
+  uploadCloudflareImage,
+  deleteCloudflareImage,
+  isCloudflareImageUrl,
+} = require("../cloudflare/images");
 
 exports.uploadImage = async (imagePath) => {
-  const result = await uploadFile(imagePath, {
-    resource_type: "image",
-    folder: "Images",
-  });
-  return getOptimizedImageUrl(result.public_id);
+  // const result = await uploadFile(imagePath, {
+  //   resource_type: "image",
+  //   folder: "Images",
+  // });
+  // return getOptimizedImageUrl(result.public_id);
+  return await uploadCloudflareImage(imagePath);
 };
 
 exports.uploadAudio = async (audioPath) => {
@@ -47,7 +49,13 @@ exports.uploadPDF = async (pdfPath, fileName) => {
   return result.secure_url;
 };
 
-exports.deleteImage = async (url) => deleteFile(url, "image");
+// Images uploaded before the switch to Cloudflare still live on Cloudinary.
+exports.deleteImage = async (url) => {
+  if (isCloudflareImageUrl(url)) {
+    return await deleteCloudflareImage(url);
+  }
+  return await deleteFile(url, "image");
+};
 
 // exports.deleteAudioOrVideo = async (url) => deleteFile(url, "video");
 

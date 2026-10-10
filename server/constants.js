@@ -109,7 +109,6 @@ module.exports = {
     ".png",
     ".webp",
     ".gif",
-    ".avif",
   ]),
 
   // Cloudflare Stream: max duration reserved per direct upload (6h is CF max).
