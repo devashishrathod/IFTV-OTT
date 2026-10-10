@@ -1,6 +1,11 @@
 const Subscription = require("../../models/Subscription");
 const { pagination } = require("../../utils");
 
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Only these query keys become filters; anything else is ignored.
+const FILTER_KEYS = ["name", "type", "isActive"];
+
 exports.getAllSubscription = async (query) => {
   const {
     page = 1,
@@ -11,12 +16,11 @@ exports.getAllSubscription = async (query) => {
     maxPrice,
     fromDate,
     toDate,
-    ...filters
   } = query;
   const matchStage = { isDeleted: false };
-  Object.keys(filters).forEach((key) => {
-    if (filters[key] !== undefined && filters[key] !== "") {
-      matchStage[key] = filters[key];
+  FILTER_KEYS.forEach((key) => {
+    if (query[key] !== undefined && query[key] !== "") {
+      matchStage[key] = query[key];
     }
   });
   if (price !== undefined) {
@@ -38,19 +42,19 @@ exports.getAllSubscription = async (query) => {
       matchStage.createdAt.$gte = new Date(fromDate);
     }
     if (toDate) {
-      matchStage.createdAt.$lte = new Date(toDate);
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      matchStage.createdAt.$lte = end;
     }
   }
+  const searchRegex = search ? new RegExp(escapeRegex(search), "i") : null;
   const pipeline = [
     { $match: matchStage },
-    ...(search
+    ...(searchRegex
       ? [
           {
             $match: {
-              $or: [
-                { name: { $regex: search, $options: "i" } },
-                { description: { $regex: search, $options: "i" } },
-              ],
+              $or: [{ name: searchRegex }, { description: searchRegex }],
             },
           },
         ]
