@@ -42,12 +42,6 @@ module.exports = {
     Family: "family",
   }),
 
-  PRODUCT_TYPES: Object.freeze({
-    GROCERY: "grocery",
-    ELECTRONICS: "electronics",
-    CLOTHING: "clothing",
-  }),
-
   ZIP_CODE_REGEX_MAP: Object.freeze({
     IN: /^[1-9][0-9]{5}$/, // India (6 digits)
     US: /^\d{5}(-\d{4})?$/, // USA (ZIP or ZIP+4)
