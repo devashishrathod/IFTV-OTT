@@ -44,7 +44,8 @@ const userSchema = new mongoose.Schema(
     currentLocation: { lat: Number, lng: Number },
     fcmToken: { type: String },
     image: { type: String },
-    otp: { code: String, expiresAt: Date },
+    // code: email OTP; sessionId: 2factor session of the mobile OTP sent to this user
+    otp: { code: String, sessionId: String, expiresAt: Date },
     // uniqueId: { type: String, unique: true },
     currentScreen: { type: String, default: "LANDING_SCREEN" },
     isEmailVerified: { type: Boolean, default: false },

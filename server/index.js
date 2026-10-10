@@ -10,6 +10,7 @@ const { errorHandler, cleanupTempFiles } = require("./middlewares");
 const { throwError } = require("./utils");
 const { UPLOAD_LIMITS } = require("./constants");
 const allRoutes = require("./routes");
+const { startJobs } = require("./jobs");
 
 const app = express();
 const port = process.env.PORT || 8500;
@@ -30,7 +31,16 @@ app.use(
   }),
 );
 app.use(cleanupTempFiles);
-app.use(express.json());
+app.use(
+  express.json({
+    // Razorpay webhook signatures are computed on the exact raw body
+    verify: (req, res, buf) => {
+      if (req.originalUrl.startsWith("/iftv-ott/payments/webhook")) {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(morgan("dev"));
 app.use("/iftv-ott/", allRoutes);
 app.get("/", async (req, res) => {
@@ -42,6 +52,7 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 mongoDb();
+startJobs();
 const server = app.listen(port, () =>
   console.log(`✅ IFTV-OTT Server running on http://localhost:${port}`),
 );

@@ -10,6 +10,7 @@ const {
   getLinkableStreamVideo,
   deleteMedia,
 } = require("./movieMedia");
+const { resolveAccessFields } = require("./movieAccessFields");
 
 const PROTECTED_KEYS = ["_id", "id", "createdAt", "updatedAt"];
 
@@ -19,7 +20,7 @@ exports.updateMovie = async (movieId, payload = {}, image, video) => {
   if (!movie || movie.isDeleted) {
     throwError(404, "Movie not found");
   }
-  const { videoUid, videoUrl, ...fields } = payload;
+  const { videoUid, videoUrl, accessType, allowedPlans, ...fields } = payload;
   const streamRef = videoUid || videoUrl;
   if (video && streamRef) {
     throwError(422, "Send either a video file or videoUid, not both");
@@ -44,6 +45,10 @@ exports.updateMovie = async (movieId, payload = {}, image, video) => {
     const category = await Category.findById(fields.categoryId);
     if (!category || category.isDeleted) throwError(404, "Category not found");
   }
+  Object.assign(
+    fields,
+    await resolveAccessFields({ accessType, allowedPlans }, movie)
+  );
   Object.keys(fields).forEach((key) => {
     if (!PROTECTED_KEYS.includes(key)) movie[key] = fields[key];
   });

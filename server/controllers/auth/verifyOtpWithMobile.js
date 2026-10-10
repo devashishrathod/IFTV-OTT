@@ -16,8 +16,17 @@ exports.verifyOtpWithMobile = asyncWrapper(async (req, res) => {
     "-password",
   );
   if (!user) throwError(404, "User not found with this mobile number");
-   let result = await verifyOtpToMobile(sessionId, otp);
-   if (result?.Status == "Success") {
+  if (!user.otp?.sessionId) throwError(404, "OTP not found");
+  // The session must be the one sent to this mobile; otherwise an OTP
+  // received on another phone could log into this account.
+  if (user.otp.sessionId !== String(sessionId)) throwError(403, "Invalid OTP");
+  if (new Date() > user.otp.expiresAt) throwError(410, "OTP expired");
+  const result = await verifyOtpToMobile(sessionId, String(otp));
+  if (result?.Status !== "Success") {
+    if (/expired/i.test(result?.Details || "")) throwError(410, "OTP expired");
+    throwError(403, "Invalid OTP");
+  }
+  user.otp = undefined;
   user.loginType = loginType;
   user.isMobileVerified = true;
   user.isLoggedIn = true;
@@ -30,7 +39,4 @@ exports.verifyOtpWithMobile = asyncWrapper(async (req, res) => {
     user,
     token,
   });
-   } else {
-    return res.status(400).json({ success: false, msg: "Invalid OTP" });
-   }
 });

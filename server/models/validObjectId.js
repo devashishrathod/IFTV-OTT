@@ -20,7 +20,9 @@ module.exports = Object.freeze({
   categoryField: refField("Category"),
   subCategoryField: refField("SubCategory"),
   locationField: refField("Location"),
-  ProductField: refField("Product"),
+  subscriptionField: refField("Subscription", "plan"),
+  userSubscriptionField: refField("UserSubscription", "user subscription"),
+  paymentField: refField("Payment"),
 
   // Array of ObjectIds with validation
   locationsField: Object.freeze({
@@ -30,16 +32,6 @@ module.exports = Object.freeze({
       validator: (arr) => Array.isArray(arr) && arr.every(isValidId),
       message: (props) =>
         `One or more location IDs in ${props.value} are invalid`,
-    },
-  }),
-
-  productsField: Object.freeze({
-    type: [ObjectId],
-    ref: "Product",
-    validate: {
-      validator: (arr) => Array.isArray(arr) && arr.every(isValidId),
-      message: (props) =>
-        `One or more Product IDs in ${props.value} are invalid`,
     },
   }),
 });
