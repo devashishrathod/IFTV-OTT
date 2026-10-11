@@ -1,8 +1,8 @@
 # IFTV Admin Panel: API doc
 
-Last update: 2026-10-10 · Index: [README.md](README.md)
+Last update: 2026-10-11 · Index: [README.md](README.md)
 
-Ye doc admin panel team ke liye hai. Isme 6 features hain:
+Ye doc admin panel team ke liye hai. Isme 7 features hain:
 
 1. [Auth: admin / staff login](#1-auth-admin--staff-login)
 2. [Support inbox](#2-support-inbox) (tickets + Contact Us messages)
@@ -10,6 +10,7 @@ Ye doc admin panel team ke liye hai. Isme 6 features hain:
 4. [Subscriptions: plans, settings, users](#4-subscriptions-plans-settings-users)
 5. [Payments](#5-payments) (transactions, sync, dashboard stats)
 6. [Movies: free / paid](#6-movies-free--paid)
+7. [Users list](#7-users-list) (filters + har user ka current plan)
 
 ---
 
@@ -44,8 +45,8 @@ Error aaye to `message` ko toast mein dikhao.
 
 | Role | Admin panel |
 | --- | --- |
-| `admin` | Support, Gallery, Subscriptions, Payments: sab kuch |
-| `staff` | Support aur Gallery sab kuch. Subscriptions / Payments sirf dekh sakta hai (badlav par 403) |
+| `admin` | Support, Gallery, Subscriptions, Payments, Users list: sab kuch |
+| `staff` | Support aur Gallery sab kuch. Subscriptions / Payments sirf dekh sakta hai (badlav par 403). Users list dekh sakta hai |
 | `user` | Admin panel ke har API par **403** milta hai |
 
 ### Token
@@ -78,7 +79,7 @@ Error aaye to `message` ko toast mein dikhao.
 
 List APIs par koi record na ho (ya filter se kuch match na ho) to **404** `No any ... found` aata hai. Isko error mat dikhao, table mein "No data" dikhao.
 
-**Exception:** subscription aur payment ki nayi admin lists (`/subscriptions/admin/users`, `/payments/admin/getAll`) khali hone par **200** + `data: []` deti hain.
+**Exception:** subscription, payment aur users ki nayi admin lists (`/subscriptions/admin/users`, `/payments/admin/getAll`, `/users/get-all`) khali hone par **200** + `data: []` deti hain.
 
 ### Dates
 
@@ -1223,7 +1224,169 @@ Errors: 422 `Access Type must be one of [free, paid]` / `One or more plans in al
 
 ---
 
+## 7. Users list
+
+`GET /users/get-all` · Auth: admin / staff (user token par 403)
+
+Admin panel ka "Users" page. **Default sirf app / website ke users** (`role: user`) aate hain. Staff ya admin accounts dekhne hon to `role` bhejo. Delete hue users kabhi nahi aate.
+
+Har filter optional hai. Jo filter use nahi ho raha, uska param **mat bhejo**. Khali `role=` ya `isActive=` bhejne par 422 aata hai. Sirf text filters (`search`, `name`, `email`, `mobile`, `currentScreen`) khali value ignore karte hain. Anjaan param (jaise `foo=1`) par bhi 422 aata hai.
+
+| Query | Rules |
+| --- | --- |
+| page | ≥ 1, default 1 |
+| limit | 1–100, default 10 |
+| role | `user` (default), `staff`, `admin`, `all` (saare roles ek saath) |
+| search | naam, email ya mobile mein dhoondhta hai (partial, case-insensitive, max 100). Mobile mein tabhi dhoondhta hai jab text sirf digits ho |
+| name | sirf naam mein partial match |
+| email | sirf email mein partial match (jaise `@gmail.com`) |
+| mobile | sirf digits, partial match (jaise `98765`), max 15 |
+| loginType | `email`, `mobile`, `google`, `password`, `other` |
+| currentScreen | exact screen naam (jaise `HOME_SCREEN`) |
+| isActive | `true` / `false` |
+| isEmailVerified, isMobileVerified | `true` / `false` |
+| isSignUpCompleted, isOnBoardingCompleted | `true` / `false` |
+| isLoggedIn | `true` / `false` |
+| isOnline | `true` / `false`. Jis user ne kabhi online status nahi bheja, wo dono mein nahi aata |
+| isSubscribed | `true` = abhi koi plan chal raha hai, `false` = koi plan nahi chal raha |
+| planId | plan ka `_id`. Wo users jinka **abhi chalta plan** yahi hai (queue wala renewal count nahi hota). `isSubscribed=false` ke saath nahi chalega |
+| fromDate / toDate | `YYYY-MM-DD`, join date (`createdAt`) par. toDate pura din include karta hai |
+| lastActivityFrom / lastActivityTo | `YYYY-MM-DD`, `lastActivity` par (jaise "pichhle 7 din mein active") |
+| sortBy | `createdAt` (default), `updatedAt`, `lastActivity`, `name`, `email` |
+| sortOrder | `desc` (default) / `asc` |
+
+**Request:**
+
+```
+GET /users/get-all?page=1&limit=10
+Authorization: Bearer <admin / staff token>
+```
+
+Filters ke saath: `GET /users/get-all?page=1&limit=10&search=amit&isSubscribed=true&sortBy=lastActivity`
+
+**Success 200** (7 users mein se 2 rows dikhayi hain):
+
+```json
+{
+  "success": true,
+  "message": "Users fetched successfully",
+  "data": {
+    "total": 7,
+    "totalPages": 1,
+    "page": 1,
+    "limit": 10,
+    "data": [
+      {
+        "_id": "6acacb0b2f97604ca3fac084",
+        "name": "amit kumar",
+        "address": "lucknow",
+        "dob": "1995-04-12",
+        "role": "user",
+        "loginType": "mobile",
+        "email": "amit@example.com",
+        "mobile": 9876503922,
+        "lastActivity": "2026-10-10T23:32:11.354Z",
+        "image": "https://imagedelivery.net/abc/amit/public",
+        "currentScreen": "HOME_SCREEN",
+        "isEmailVerified": false,
+        "isMobileVerified": true,
+        "isSignUpCompleted": true,
+        "isOnBoardingCompleted": false,
+        "isLoggedIn": true,
+        "isOnline": true,
+        "isActive": true,
+        "createdAt": "2026-08-31T23:32:11.354Z",
+        "updatedAt": "2026-08-31T23:32:11.354Z",
+        "isSubscribed": true,
+        "subscription": {
+          "_id": "6acacb0c2f97604ca3fac095",
+          "planId": "6acacb0c2f97604ca3fac08d",
+          "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": ["HD", "Ad free"] },
+          "status": "active",
+          "source": "purchase",
+          "startDate": "2026-09-30T23:32:11.354Z",
+          "endDate": "2026-10-30T23:32:11.354Z",
+          "daysLeft": 20,
+          "platform": "android"
+        },
+        "hasScheduled": false
+      },
+      {
+        "_id": "6acacb0b2f97604ca3fac086",
+        "name": "rahul singh",
+        "role": "user",
+        "loginType": "google",
+        "email": "rahul@example.com",
+        "lastActivity": "2026-09-28T23:32:11.354Z",
+        "currentScreen": "LANDING_SCREEN",
+        "isEmailVerified": true,
+        "isMobileVerified": false,
+        "isSignUpCompleted": false,
+        "isOnBoardingCompleted": false,
+        "isLoggedIn": false,
+        "isActive": true,
+        "createdAt": "2026-09-20T23:32:11.354Z",
+        "updatedAt": "2026-09-20T23:32:11.354Z",
+        "isSubscribed": false,
+        "subscription": null,
+        "hasScheduled": false
+      }
+    ]
+  }
+}
+```
+
+**Row ke fields:**
+
+| Field | Kya hai |
+| --- | --- |
+| name, email, mobile, image, dob, address | Profile. Jo user ne nahi bhara, wo field response mein aata hi nahi (`null` nahi aata). UI mein `-` dikhao |
+| role | `user`, `staff`, `admin` |
+| loginType | `email`, `mobile`, `google`, `password`, `other` |
+| currentScreen | App ka last screen (`LANDING_SCREEN`, `HOME_SCREEN`, ...) |
+| isEmailVerified, isMobileVerified | Verified ka tick |
+| isSignUpCompleted, isOnBoardingCompleted | Sign-up / onboarding poora hua ya nahi |
+| isLoggedIn, isOnline | `isOnline` kabhi missing bhi hota hai |
+| isActive | `false` = account band hai |
+| lastActivity | Aakhri baar kab active tha |
+| createdAt | Join date |
+| isSubscribed | `true` = abhi koi plan chal raha hai |
+| subscription | Chalta plan, ya `null`. Isme `plan` (kharidte waqt ka plan, `price` **rupees** mein), `status` (hamesha `active`), `source` (`purchase`, `renewal`, `upgrade`, `admin_grant`), `startDate`, `endDate` aur `daysLeft` aate hain. `platform` sirf purchase par aata hai. `_id` subscription period ka id hai; cancel (4.9) mein yahi lagta hai |
+| hasScheduled | `true` = chalte plan ke baad ek aur plan queue mein hai (renewal ya grant) |
+
+> `password`, `otp`, `fcmToken` aur location (`lastLocation`, `currentLocation`) is list mein **kabhi nahi** aate.
+
+**Admin panel screen (suggestion):**
+
+- Table columns: Naam · Email · Mobile · Login type · Plan (`isSubscribed` ho to `plan.name` + "`daysLeft` din baki", warna "Free" badge) · Verified icons · Active · Last active · Joined.
+- Filters: Search box, Role dropdown (Users / Staff / Admin / All), Plan dropdown (plans `GET /subscriptions/get-all?isActive=true` se), Subscribed (All / Yes / No), Login type, Active, Join date range.
+- Row click → `GET /subscriptions/admin/users/:userId` (4.7). Wahan poori subscription history aur payments ka summary hai.
+
+**Errors:**
+
+| Status | message | Kab |
+| --- | --- | --- |
+| 401 | `Access Denied! Missing authorization token` | Token nahi bheja |
+| 403 | `Forbidden: You do not have permission to perform this action.` | User token bheja |
+| 422 | `Role must be one of [admin, staff, user, all]` | Galat role |
+| 422 | `Limit must be less than or equal to 100` / `Page must be greater than or equal to 1` | |
+| 422 | `Invalid Plan Id format` | planId ObjectId nahi hai |
+| 422 | `planId cannot be used with isSubscribed=false` | Dono ek saath bheje |
+| 422 | `Mobile must contain only digits` | |
+| 422 | `Is Active must be a boolean` (baaki `is*` filters par bhi aisa hi) | `true` / `false` ke alawa kuch bheja |
+| 422 | `From Date must be in ISO 8601 date format` | Date `YYYY-MM-DD` mein nahi hai |
+| 422 | `Login Type must be one of [email, mobile, google, password, other]` | |
+| 422 | `Sort By must be one of [createdAt, updatedAt, lastActivity, name, email]` | |
+| 422 | `Foo is not allowed` | Anjaan param bheja |
+
+Kai errors ek saath hon to `, ` se jude aate hain: `Limit must be less than or equal to 100, Role must be one of [admin, staff, user, all], Foo is not allowed`.
+
+Koi user na mile to **200** + `data: []` aata hai (404 nahi).
+
+---
+
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme admin/staff login, Support inbox aur Gallery management hain.
 - **2026-10-10:** Subscriptions (plans, upgrade setting, user subscriptions, grant, cancel), Payments (list, detail, sync, stats) aur Movies free / paid add kiye. Plan add / delete par ab admin token zaroori hai.
+- **2026-10-11:** Users list (`GET /users/get-all`) add kiya. Default `role=user`, saare user fields ke filters, aur har user ka chalta plan (`isSubscribed`, `subscription`, `hasScheduled`) + `isSubscribed` / `planId` filters.

@@ -1,6 +1,6 @@
 # IFTV frontend API docs
 
-Last update: 2026-10-10
+Last update: 2026-10-11
 
 Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc mein feature-wise sections hain. Har API ke saath ye sab likha hai:
 
@@ -15,7 +15,7 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 | --- | --- | --- |
 | [web-api.md](web-api.md) | Website (React / Next.js) | OTP login, Support (Contact Us + Tickets), Gallery, Subscription + Razorpay, Movies lock |
 | [app-api.md](app-api.md) | Android / iOS app | OTP login, Support (Tickets), Gallery, Subscription + Razorpay (Android), Movies lock |
-| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management, Subscriptions, Payments, Movies free / paid |
+| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management, Subscriptions, Payments, Movies free / paid, Users list |
 
 ## Kaunsa API kis doc mein hai
 
@@ -26,6 +26,7 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 | Auth | `POST /auth/loginOrSignin-with-email` (email OTP bhejo) | ✅ | ✅ | |
 | Auth | `PUT /auth/verify-otp-email` (email OTP verify) | ✅ | ✅ | |
 | Auth | `POST /auth/login` (admin/staff password login) | | | ✅ |
+| Users | `GET /users/get-all` (admin / staff token, filters + current plan) | | | ✅ |
 | Support | `POST /supports/contact-us` (bina login) | ✅ | | |
 | Support | `POST /supports/create` | ✅ | ✅ | |
 | Support | `GET /supports/my` | ✅ | ✅ | |
@@ -77,7 +78,7 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 | Movies | `GET /movies/getAll`, `GET /movies/:id/get` (optional token, lock fields) | ✅ | ✅ | ✅ |
 | Movies | `POST /movies/add`, `PUT /movies/update/:id` (`accessType`, `allowedPlans`) | | | ✅ |
 
-**Abhi in docs mein nahi hai:** Register, password login (user ke liye), Users profile, Categories, SubCategories, Banners, aur Movies ke baaki APIs (sirf free / paid lock wala hissa docs mein hai). Razorpay webhook (`POST /payments/webhook`) sirf server-to-server hai, Postman mein hai. Inki details Postman collection mein hain. Jaise-jaise ye final hote jaayenge, inke sections bhi yahan add honge.
+**Abhi in docs mein nahi hai:** Register, password login (user ke liye), Users profile (`/users/get`, `/users/update`), Categories, SubCategories, Banners, aur Movies ke baaki APIs (sirf free / paid lock wala hissa docs mein hai). Razorpay webhook (`POST /payments/webhook`) sirf server-to-server hai, Postman mein hai. Inki details Postman collection mein hain. Jaise-jaise ye final hote jaayenge, inke sections bhi yahan add honge.
 
 ## Saath mein Postman
 
@@ -95,3 +96,4 @@ Jab bhi koi naya API bane ya kisi API mein change ho:
 
 - **2026-10-10:** Pehla version. Isme OTP login (mobile + email), Support (Contact Us, tickets, admin inbox) aur Gallery (public + admin) hain.
 - **2026-10-10:** Subscription + Razorpay payments (web, app, admin) aur Movies free / paid lock add kiye.
+- **2026-10-11:** Admin panel mein Users list (`GET /users/get-all`) add kiya, har user ke current plan ke saath.

@@ -2030,7 +2030,7 @@
     },
     {
       "name": "Users",
-      "description": "Profile of the logged-in user. Both routes need `Authorization: Bearer {{userToken}}`.\n\nToken errors (same on every protected route):\n\n| Status | message |\n| --- | --- |\n| 401 | `Access Denied! Missing authorization token` |\n| 403 | `Access Denied! Invalid authorization token format` |\n| 401 | `Your session has expired. Please log in again.` |\n| 403 | `Invalid or malformed token. Please log in again.` |\n| 404 | `User not found` (user deleted) |\n\n⚠️ `?userId=` lets any logged-in user read or update **another** user (no ownership check).",
+      "description": "Profile of the logged-in user: `/users/get` and `/users/update` need `Authorization: Bearer {{userToken}}`.\n\nAdmin panel user list: `/users/get-all` needs `{{adminToken}}` or `{{staffToken}}` (user token → 403).\n\nToken errors (same on every protected route):\n\n| Status | message |\n| --- | --- |\n| 401 | `Access Denied! Missing authorization token` |\n| 403 | `Access Denied! Invalid authorization token format` |\n| 401 | `Your session has expired. Please log in again.` |\n| 403 | `Invalid or malformed token. Please log in again.` |\n| 404 | `User not found` (user deleted) |\n\n⚠️ `?userId=` lets any logged-in user read or update **another** user (no ownership check).",
       "item": [
         {
           "name": "Get my profile",
@@ -2794,6 +2794,628 @@
               ],
               "cookie": [],
               "body": "{\n  \"success\": false,\n  \"message\": \"Image must be 10 MB or smaller\",\n  \"error\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get all users (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/get-all?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "get-all"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "≥ 1, default 1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "1–100, default 10"
+                },
+                {
+                  "key": "role",
+                  "value": "user",
+                  "description": "`user` (default) | `staff` | `admin` | `all` (every role)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "amit",
+                  "description": "name / email / mobile, partial, case-insensitive (max 100). Mobile is matched only when the text is all digits",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "kumar",
+                  "description": "partial name match",
+                  "disabled": true
+                },
+                {
+                  "key": "email",
+                  "value": "@gmail.com",
+                  "description": "partial email match",
+                  "disabled": true
+                },
+                {
+                  "key": "mobile",
+                  "value": "98765",
+                  "description": "digits only, partial match (max 15)",
+                  "disabled": true
+                },
+                {
+                  "key": "loginType",
+                  "value": "mobile",
+                  "description": "`email` | `mobile` | `google` | `password` | `other`",
+                  "disabled": true
+                },
+                {
+                  "key": "currentScreen",
+                  "value": "HOME_SCREEN",
+                  "description": "exact screen name",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isEmailVerified",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isMobileVerified",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isSignUpCompleted",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isOnBoardingCompleted",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isLoggedIn",
+                  "value": "true",
+                  "description": "`true` | `false`",
+                  "disabled": true
+                },
+                {
+                  "key": "isOnline",
+                  "value": "true",
+                  "description": "`true` | `false` (users who never sent it match neither)",
+                  "disabled": true
+                },
+                {
+                  "key": "isSubscribed",
+                  "value": "true",
+                  "description": "`true` = has a running plan right now, `false` = no running plan",
+                  "disabled": true
+                },
+                {
+                  "key": "planId",
+                  "value": "{{subscriptionId}}",
+                  "description": "ObjectId. Users whose **running** plan is this plan (a queued renewal does not count). Not allowed with `isSubscribed=false`",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-10-01",
+                  "description": "ISO date, joined (createdAt) ≥",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-10-31",
+                  "description": "ISO date, joined (createdAt) ≤ end of that day",
+                  "disabled": true
+                },
+                {
+                  "key": "lastActivityFrom",
+                  "value": "2026-10-04",
+                  "description": "ISO date, lastActivity ≥",
+                  "disabled": true
+                },
+                {
+                  "key": "lastActivityTo",
+                  "value": "2026-10-11",
+                  "description": "ISO date, lastActivity ≤ end of that day",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "`createdAt` (default) | `updatedAt` | `lastActivity` | `name` | `email`",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "`asc` | `desc` (default)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Admin panel user list. **Auth:** `{{adminToken}}` or `{{staffToken}}` (a user token gets 403).\n\n- Default `role=user`: only app/web users. `role=staff` / `role=admin` / `role=all` for the others.\n- Deleted users never come back. `password`, `otp`, `fcmToken`, `isDeleted`, `lastLocation`, `currentLocation` are never sent.\n- Every query param is optional; send only the filters in use. Text filters (`search`, `name`, `email`, `mobile`, `currentScreen`) ignore an empty value. Unknown params → 422.\n- Empty result → `200` with `data: []` (not 404).\n\n**Subscription on every row** (same rule as movie access: dates decide):\n\n| Field | Meaning |\n| --- | --- |\n| `isSubscribed` | `true` when a plan is running right now |\n| `subscription` | running plan or `null`: `{ _id, planId, plan: { name, type, price (rupees), durationInDays, benefits }, status: \"active\", source, startDate, endDate, daysLeft, platform }`. `_id` is the period id used by *Cancel subscription*; `platform` only on purchases |\n| `hasScheduled` | a queued renewal / grant starts after the running plan |\n\nFull history of one user: *Subscriptions → One user's subscriptions*.\n\n| Status | message |\n| --- | --- |\n| 200 | `Users fetched successfully` |\n| 401 | `Access Denied! Missing authorization token` / `Your session has expired. Please log in again.` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (user token) / `Invalid or malformed token. Please log in again.` |\n| 422 | `Role must be one of [admin, staff, user, all]`, `Limit must be less than or equal to 100`, `Invalid Plan Id format`, `Mobile must contain only digits`, `Is Active must be a boolean`, `From Date must be in ISO 8601 date format`, `Sort By must be one of [createdAt, updatedAt, lastActivity, name, email]`, `planId cannot be used with isSubscribed=false`, `Foo is not allowed` (unknown param). Several errors are joined with `, ` |"
+          },
+          "response": [
+            {
+              "name": "200 Users (page 2, limit 3)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?page=2&limit=3",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "2",
+                      "description": "≥ 1, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "3",
+                      "description": "1–100, default 10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": {\n    \"total\": 7,\n    \"totalPages\": 3,\n    \"page\": 2,\n    \"limit\": 3,\n    \"data\": [\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac087\",\n        \"name\": \"neha (test)\",\n        \"role\": \"user\",\n        \"loginType\": \"mobile\",\n        \"email\": \"neha.test@example.com\",\n        \"mobile\": 9123456780,\n        \"lastActivity\": \"2026-09-25T23:32:11.354Z\",\n        \"currentScreen\": \"LANDING_SCREEN\",\n        \"isEmailVerified\": false,\n        \"isMobileVerified\": true,\n        \"isSignUpCompleted\": false,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": false,\n        \"isActive\": false,\n        \"createdAt\": \"2026-09-25T23:32:11.354Z\",\n        \"updatedAt\": \"2026-09-25T23:32:11.354Z\",\n        \"isSubscribed\": false,\n        \"subscription\": null,\n        \"hasScheduled\": false\n      },\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac086\",\n        \"name\": \"rahul singh\",\n        \"role\": \"user\",\n        \"loginType\": \"google\",\n        \"email\": \"rahul@example.com\",\n        \"lastActivity\": \"2026-09-28T23:32:11.354Z\",\n        \"currentScreen\": \"LANDING_SCREEN\",\n        \"isEmailVerified\": true,\n        \"isMobileVerified\": false,\n        \"isSignUpCompleted\": false,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": false,\n        \"isActive\": true,\n        \"createdAt\": \"2026-09-20T23:32:11.354Z\",\n        \"updatedAt\": \"2026-09-20T23:32:11.354Z\",\n        \"isSubscribed\": false,\n        \"subscription\": null,\n        \"hasScheduled\": false\n      },\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac085\",\n        \"name\": \"priya verma\",\n        \"role\": \"user\",\n        \"loginType\": \"email\",\n        \"email\": \"priya@example.com\",\n        \"mobile\": 9876501027,\n        \"lastActivity\": \"2026-10-08T23:32:11.354Z\",\n        \"currentScreen\": \"HOME_SCREEN\",\n        \"isEmailVerified\": true,\n        \"isMobileVerified\": false,\n        \"isSignUpCompleted\": true,\n        \"isOnBoardingCompleted\": true,\n        \"isLoggedIn\": true,\n        \"isOnline\": false,\n        \"isActive\": true,\n        \"createdAt\": \"2026-09-10T23:32:11.354Z\",\n        \"updatedAt\": \"2026-09-10T23:32:11.354Z\",\n        \"isSubscribed\": true,\n        \"subscription\": {\n          \"_id\": \"6acacb0c2f97604ca3fac096\",\n          \"planId\": \"6acacb0c2f97604ca3fac08e\",\n          \"plan\": {\n            \"name\": \"Yearly\",\n            \"type\": \"yearly\",\n            \"price\": 1299,\n            \"durationInDays\": 365,\n            \"benefits\": [\n              \"Full HD\"\n            ]\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-10-05T23:32:11.354Z\",\n          \"endDate\": \"2027-10-05T23:32:11.354Z\",\n          \"daysLeft\": 360,\n          \"platform\": \"web\"\n        },\n        \"hasScheduled\": true\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "200 Subscribed users",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?isSubscribed=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "isSubscribed",
+                      "value": "true",
+                      "description": "`true` = has a running plan right now, `false` = no running plan"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": {\n    \"total\": 3,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac089\",\n        \"name\": \"sana\",\n        \"role\": \"user\",\n        \"loginType\": \"email\",\n        \"email\": \"sana@example.com\",\n        \"lastActivity\": \"2026-10-07T23:32:11.354Z\",\n        \"currentScreen\": \"LANDING_SCREEN\",\n        \"isEmailVerified\": false,\n        \"isMobileVerified\": false,\n        \"isSignUpCompleted\": false,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": false,\n        \"isActive\": true,\n        \"createdAt\": \"2026-10-05T23:32:11.354Z\",\n        \"updatedAt\": \"2026-10-05T23:32:11.354Z\",\n        \"isSubscribed\": true,\n        \"subscription\": {\n          \"_id\": \"6acacb0c2f97604ca3fac09b\",\n          \"planId\": \"6acacb0c2f97604ca3fac08f\",\n          \"plan\": {\n            \"name\": \"Weekly\",\n            \"type\": \"weekly\",\n            \"price\": 59,\n            \"durationInDays\": 7,\n            \"benefits\": []\n          },\n          \"status\": \"active\",\n          \"source\": \"admin_grant\",\n          \"startDate\": \"2026-10-09T23:32:11.354Z\",\n          \"endDate\": \"2026-10-16T23:32:11.354Z\",\n          \"daysLeft\": 6\n        },\n        \"hasScheduled\": false\n      },\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac085\",\n        \"name\": \"priya verma\",\n        \"role\": \"user\",\n        \"loginType\": \"email\",\n        \"email\": \"priya@example.com\",\n        \"mobile\": 9876501027,\n        \"lastActivity\": \"2026-10-08T23:32:11.354Z\",\n        \"currentScreen\": \"HOME_SCREEN\",\n        \"isEmailVerified\": true,\n        \"isMobileVerified\": false,\n        \"isSignUpCompleted\": true,\n        \"isOnBoardingCompleted\": true,\n        \"isLoggedIn\": true,\n        \"isOnline\": false,\n        \"isActive\": true,\n        \"createdAt\": \"2026-09-10T23:32:11.354Z\",\n        \"updatedAt\": \"2026-09-10T23:32:11.354Z\",\n        \"isSubscribed\": true,\n        \"subscription\": {\n          \"_id\": \"6acacb0c2f97604ca3fac096\",\n          \"planId\": \"6acacb0c2f97604ca3fac08e\",\n          \"plan\": {\n            \"name\": \"Yearly\",\n            \"type\": \"yearly\",\n            \"price\": 1299,\n            \"durationInDays\": 365,\n            \"benefits\": [\n              \"Full HD\"\n            ]\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-10-05T23:32:11.354Z\",\n          \"endDate\": \"2027-10-05T23:32:11.354Z\",\n          \"daysLeft\": 360,\n          \"platform\": \"web\"\n        },\n        \"hasScheduled\": true\n      },\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac084\",\n        \"name\": \"amit kumar\",\n        \"address\": \"lucknow\",\n        \"dob\": \"1995-04-12\",\n        \"role\": \"user\",\n        \"loginType\": \"mobile\",\n        \"email\": \"amit@example.com\",\n        \"mobile\": 9876503922,\n        \"lastActivity\": \"2026-10-10T23:32:11.354Z\",\n        \"image\": \"https://imagedelivery.net/abc/amit/public\",\n        \"currentScreen\": \"HOME_SCREEN\",\n        \"isEmailVerified\": false,\n        \"isMobileVerified\": true,\n        \"isSignUpCompleted\": true,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": true,\n        \"isOnline\": true,\n        \"isActive\": true,\n        \"createdAt\": \"2026-08-31T23:32:11.354Z\",\n        \"updatedAt\": \"2026-08-31T23:32:11.354Z\",\n        \"isSubscribed\": true,\n        \"subscription\": {\n          \"_id\": \"6acacb0c2f97604ca3fac095\",\n          \"planId\": \"6acacb0c2f97604ca3fac08d\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199,\n            \"durationInDays\": 30,\n            \"benefits\": [\n              \"HD\",\n              \"Ad free\"\n            ]\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-09-30T23:32:11.354Z\",\n          \"endDate\": \"2026-10-30T23:32:11.354Z\",\n          \"daysLeft\": 20,\n          \"platform\": \"android\"\n        },\n        \"hasScheduled\": false\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "200 Running plan = Monthly",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?planId={{subscriptionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "planId",
+                      "value": "{{subscriptionId}}",
+                      "description": "ObjectId. Users whose **running** plan is this plan (a queued renewal does not count). Not allowed with `isSubscribed=false`"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": {\n    \"total\": 1,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac084\",\n        \"name\": \"amit kumar\",\n        \"address\": \"lucknow\",\n        \"dob\": \"1995-04-12\",\n        \"role\": \"user\",\n        \"loginType\": \"mobile\",\n        \"email\": \"amit@example.com\",\n        \"mobile\": 9876503922,\n        \"lastActivity\": \"2026-10-10T23:32:11.354Z\",\n        \"image\": \"https://imagedelivery.net/abc/amit/public\",\n        \"currentScreen\": \"HOME_SCREEN\",\n        \"isEmailVerified\": false,\n        \"isMobileVerified\": true,\n        \"isSignUpCompleted\": true,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": true,\n        \"isOnline\": true,\n        \"isActive\": true,\n        \"createdAt\": \"2026-08-31T23:32:11.354Z\",\n        \"updatedAt\": \"2026-08-31T23:32:11.354Z\",\n        \"isSubscribed\": true,\n        \"subscription\": {\n          \"_id\": \"6acacb0c2f97604ca3fac095\",\n          \"planId\": \"6acacb0c2f97604ca3fac08d\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199,\n            \"durationInDays\": 30,\n            \"benefits\": [\n              \"HD\",\n              \"Ad free\"\n            ]\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-09-30T23:32:11.354Z\",\n          \"endDate\": \"2026-10-30T23:32:11.354Z\",\n          \"daysLeft\": 20,\n          \"platform\": \"android\"\n        },\n        \"hasScheduled\": false\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "200 Staff accounts",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{staffToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?role=staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "staff",
+                      "description": "`user` (default) | `staff` | `admin` | `all` (every role)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": {\n    \"total\": 1,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n      {\n        \"_id\": \"6acacb0b2f97604ca3fac083\",\n        \"name\": \"support staff\",\n        \"role\": \"staff\",\n        \"loginType\": \"password\",\n        \"email\": \"staff@example.com\",\n        \"lastActivity\": \"2026-10-09T23:32:11.354Z\",\n        \"currentScreen\": \"LANDING_SCREEN\",\n        \"isEmailVerified\": false,\n        \"isMobileVerified\": false,\n        \"isSignUpCompleted\": false,\n        \"isOnBoardingCompleted\": false,\n        \"isLoggedIn\": false,\n        \"isActive\": true,\n        \"createdAt\": \"2026-08-21T23:32:11.354Z\",\n        \"updatedAt\": \"2026-08-21T23:32:11.354Z\",\n        \"isSubscribed\": false,\n        \"subscription\": null,\n        \"hasScheduled\": false\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "200 No match (empty list)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?search=zzzz",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "zzzz",
+                      "description": "name / email / mobile, partial, case-insensitive (max 100). Mobile is matched only when the text is all digits"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": {\n    \"total\": 0,\n    \"totalPages\": 0,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": []\n  }\n}"
+            },
+            {
+              "name": "401 No token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Access Denied! Missing authorization token\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "403 User token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": []
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden: You do not have permission to perform this action.\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 Several bad params",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?limit=101&role=x&foo=1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "101",
+                      "description": "1–100, default 10"
+                    },
+                    {
+                      "key": "role",
+                      "value": "x",
+                      "description": "`user` (default) | `staff` | `admin` | `all` (every role)"
+                    },
+                    {
+                      "key": "foo",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Limit must be less than or equal to 100, Role must be one of [admin, staff, user, all], Foo is not allowed\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 planId with isSubscribed=false",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?planId={{subscriptionId}}&isSubscribed=false",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "planId",
+                      "value": "{{subscriptionId}}",
+                      "description": "ObjectId. Users whose **running** plan is this plan (a queued renewal does not count). Not allowed with `isSubscribed=false`"
+                    },
+                    {
+                      "key": "isSubscribed",
+                      "value": "false",
+                      "description": "`true` = has a running plan right now, `false` = no running plan"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"planId cannot be used with isSubscribed=false\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 Bad planId",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?planId=123",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "planId",
+                      "value": "123",
+                      "description": "ObjectId. Users whose **running** plan is this plan (a queued renewal does not count). Not allowed with `isSubscribed=false`"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid Plan Id format\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 Mobile not digits",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/get-all?mobile=abc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "get-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "mobile",
+                      "value": "abc",
+                      "description": "digits only, partial match (max 15)"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Mobile must contain only digits\",\n  \"error\": {}\n}"
             }
           ]
         }
