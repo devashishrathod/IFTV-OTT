@@ -1,8 +1,8 @@
 # IFTV Admin Panel: API doc
 
-Last update: 2026-10-11 · Index: [README.md](README.md)
+Last update: 2026-10-30 · Index: [README.md](README.md)
 
-Ye doc admin panel team ke liye hai. Isme 7 features hain:
+Ye doc admin panel team ke liye hai. Isme 8 features hain:
 
 1. [Auth: admin / staff login](#1-auth-admin--staff-login)
 2. [Support inbox](#2-support-inbox) (tickets + Contact Us messages)
@@ -11,6 +11,7 @@ Ye doc admin panel team ke liye hai. Isme 7 features hain:
 5. [Payments](#5-payments) (transactions, sync, dashboard stats)
 6. [Movies: free / paid](#6-movies-free--paid)
 7. [Users list](#7-users-list) (filters + har user ka current plan)
+8. [Dashboard](#8-dashboard) (home page: KPI cards, charts, circles, recent lists, filters)
 
 ---
 
@@ -1385,8 +1386,366 @@ Koi user na mile to **200** + `data: []` aata hai (404 nahi).
 
 ---
 
+## 8. Dashboard
+
+`GET /dashboard/admin` · Auth: **sirf admin** (staff aur user token par 403)
+
+Admin panel ka home page **ek hi call** mein: KPI cards (pichhle period se % change ke saath), charts, analysis circles (pie / donut), har section ke totals aur recent lists. Saare query params optional hain. Kuch na bhejo to pichhle 30 din ka data aata hai.
+
+> Purani `GET /payments/admin/stats` (5.4) aur `GET /supports/admin/stats` (2.2) waise hi chalti rahengi. Home page ke liye ab ye dashboard API use karo.
+
+### Filters
+
+| Query | Rules |
+| --- | --- |
+| range | `today`, `yesterday`, `last_7_days`, `last_30_days` (default), `last_90_days`, `this_month`, `last_month`, `this_year`, `all_time`, `custom` |
+| fromDate | `YYYY-MM-DD` (IST). Sirf `range=custom` ke saath. `range` na bhejo aur `fromDate` / `toDate` bhejo to `custom` maana jayega |
+| toDate | `YYYY-MM-DD` (IST), ye pura din shaamil hota hai. Default aaj. `fromDate` se pehle nahi ho sakta |
+| groupBy | `day`, `week`, `month`: chart ka bucket. Na bhejo to auto: 31 din tak `day`, 180 din tak `week`, usse zyada `month`. `day` max 366 din tak chalta hai |
+| platform | `web`, `android`, `ios` |
+| planId | plan ka `_id` |
+| categoryId | category ka `_id` |
+| compare | `true` (default) / `false`. KPI cards mein pichhle period se comparison. `all_time` mein hamesha off |
+| recentLimit | 1–20, default 10. Har recent list mein kitne items |
+
+**Kaunsa filter kahan lagta hai:**
+
+| Filter | Users | Payments / revenue | Subscriptions | Support | Content | Recent lists |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Date range | ✅ signups | ✅ | ✅ (naye / expire hue) | ✅ (naye tickets) | ❌ | ❌ |
+| platform | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ jahan field hai |
+| planId | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ payments / subscriptions |
+| categoryId | ❌ | ❌ | ❌ | ❌ | ✅ movies | ✅ movies |
+
+**Rule yaad rakho:**
+- **Flow** wala data date range ke hisaab se badalta hai: signups, payments / revenue, naye subscriptions, naye tickets.
+- **Abhi ki state** wala data hamesha aaj ka hota hai: active subscribers, scheduled, expiring soon, content count, open ticket queue.
+- Recent lists hamesha latest records dikhati hain, date range unpar nahi lagta.
+- Users mein sirf `role: user` (customers) gine jaate hain, aur delete hue users nahi gine jaate.
+- Users par `platform` / `planId` nahi lagta, kyunki user ke data mein platform field nahi hai.
+
+**Pichhla period (comparison):**
+- Normal ranges mein utne hi din, range se theek pehle. Jaise `last_30_days` (1–30 Oct) ka comparison 1–30 Sep se hota hai.
+- `this_month`: pichhle mahine ke utne hi din.
+- `last_month`: usse pehle wala mahina.
+- `this_year`: pichhle saal ke utne hi din.
+
+**Request:**
+
+```
+GET /dashboard/admin
+Authorization: Bearer <admin token>
+```
+
+Filters ke saath:
+
+```
+GET /dashboard/admin?range=this_month
+GET /dashboard/admin?fromDate=2026-10-01&toDate=2026-10-30&groupBy=week
+GET /dashboard/admin?range=last_90_days&platform=web&planId=6ae4b7cd68f2d3a27286b02c&categoryId=6ae4b7cf68f2d3a27286b04d
+```
+
+### Success 200
+
+Test data ka asli response hai. Har list aur circle ka sirf ek hissa dikhaya hai (`...`):
+
+```json
+{
+  "success": true,
+  "message": "Dashboard fetched successfully",
+  "data": {
+    "filters": {
+      "range": "last_30_days",
+      "fromDate": "2026-10-01",
+      "toDate": "2026-10-30",
+      "days": 30,
+      "groupBy": "day",
+      "platform": null,
+      "planId": null,
+      "categoryId": null,
+      "recentLimit": 10,
+      "compare": true,
+      "previousFromDate": "2026-09-01",
+      "previousToDate": "2026-09-30",
+      "timezone": "Asia/Kolkata",
+      "currency": "INR",
+      "amountUnit": "paise"
+    },
+    "overview": {
+      "newUsers": { "value": 3, "previous": 2, "changePercent": 50 },
+      "revenue": { "value": 119800, "previous": 19900, "changePercent": 502 },
+      "paidPayments": { "value": 2, "previous": 1, "changePercent": 100 },
+      "newSubscriptions": { "value": 5, "previous": 1, "changePercent": 400 },
+      "newTickets": { "value": 3, "previous": 1, "changePercent": 200 },
+      "totalUsers": 5,
+      "activeSubscribers": 3,
+      "openTickets": 2,
+      "totalMovies": 4
+    },
+    "charts": {
+      "groupBy": "day",
+      "points": [
+        {
+          "date": "2026-10-29", "label": "29 Oct",
+          "signups": 0, "revenue": 0, "paidPayments": 0, "failedPayments": 0,
+          "newSubscriptions": 1, "expiredSubscriptions": 0, "tickets": 0, "resolvedTickets": 0
+        },
+        {
+          "date": "2026-10-30", "label": "30 Oct",
+          "signups": 1, "revenue": 19900, "paidPayments": 1, "failedPayments": 0,
+          "newSubscriptions": 0, "expiredSubscriptions": 0, "tickets": 1, "resolvedTickets": 0
+        }
+      ]
+    },
+    "circles": {
+      "paymentsByStatus": {
+        "total": 5,
+        "items": [
+          { "key": "created", "label": "Created", "count": 1, "percent": 20 },
+          { "key": "paid", "label": "Paid", "count": 2, "percent": 40 },
+          { "key": "failed", "label": "Failed", "count": 1, "percent": 20 },
+          { "key": "expired", "label": "Expired", "count": 1, "percent": 20 }
+        ]
+      },
+      "revenueByPlatform": {
+        "total": 119800,
+        "items": [
+          { "key": "web", "label": "Web", "count": 1, "amount": 19900, "percent": 16.6 },
+          { "key": "android", "label": "Android", "count": 1, "amount": 99900, "percent": 83.4 },
+          { "key": "ios", "label": "iOS", "count": 0, "amount": 0, "percent": 0 }
+        ]
+      },
+      "activeSubscribersByPlan": {
+        "total": 3,
+        "items": [
+          { "key": "6ae4b7cd68f2d3a27286b02c", "label": "Monthly", "count": 2, "percent": 66.7 },
+          { "key": "6ae4b7cd68f2d3a27286b02d", "label": "Yearly", "count": 1, "percent": 33.3 }
+        ]
+      },
+      "...": "baaki 17 circles isi shape mein"
+    },
+    "users": {
+      "total": 5, "active": 4, "inactive": 1, "emailVerified": 2, "mobileVerified": 1,
+      "signUpCompleted": 1, "onlineNow": 1, "newInRange": 3, "subscribed": 3, "neverSubscribed": 1
+    },
+    "subscriptions": {
+      "activeSubscribers": 3, "scheduled": 1, "expiringIn7Days": 1, "newInRange": 5,
+      "expiredInRange": 1, "cancelledInRange": 1, "adminGrantsInRange": 1, "upgradeAllowed": true
+    },
+    "revenue": {
+      "today": { "amount": 19900, "count": 1 },
+      "thisMonth": { "amount": 119800, "count": 2 },
+      "range": { "amount": 119800, "count": 2 },
+      "allTime": { "amount": 159600, "count": 4 },
+      "averageOrderValue": 59900,
+      "successRatePercent": 50,
+      "creditAppliedInRange": 0
+    },
+    "content": {
+      "movies": { "total": 4, "active": 3, "inactive": 1, "free": 2, "paid": 2, "withoutVideo": 2 },
+      "categories": { "total": 2, "active": 1 },
+      "subCategories": { "total": 1, "active": 1 },
+      "banners": { "total": 2, "active": 1 },
+      "gallery": { "total": 3, "active": 2, "image": 1, "gif": 1, "video": 1 },
+      "plans": { "total": 3, "active": 2 }
+    },
+    "support": {
+      "totalInRange": 3, "open": 1, "inProgress": 1, "unassignedOpen": 1,
+      "highPriorityOpen": 1, "avgResolutionHours": 10
+    },
+    "recent": {
+      "users": [
+        {
+          "_id": "6ae4b7cd68f2d3a27286b022", "name": "U1", "loginType": "google", "email": "u1@x.com",
+          "isEmailVerified": true, "isMobileVerified": false, "isActive": true,
+          "createdAt": "2026-10-30T15:29:11.002Z"
+        }
+      ],
+      "payments": [
+        {
+          "_id": "6ae4b7ce68f2d3a27286b038",
+          "planId": "6ae4b7cd68f2d3a27286b02c",
+          "plan": { "name": "Monthly", "type": "monthly", "price": 199 },
+          "purpose": "new", "amount": 19900, "currency": "INR", "status": "paid",
+          "receipt": "R1", "method": "upi", "platform": "web",
+          "paidAt": "2026-10-30T15:29:11.002Z", "createdAt": "2026-10-30T15:29:11.002Z",
+          "user": { "_id": "6ae4b7cd68f2d3a27286b022", "name": "U1", "email": "u1@x.com" }
+        }
+      ],
+      "failedPayments": [
+        { "...": "payments jaisa", "status": "failed", "failureReason": "declined" }
+      ],
+      "subscriptions": [
+        {
+          "_id": "6ae4b7ce68f2d3a27286b040",
+          "user": { "_id": "6ae4b7cd68f2d3a27286b022", "name": "U1", "email": "u1@x.com" },
+          "planId": "6ae4b7cd68f2d3a27286b02c",
+          "plan": { "name": "Monthly", "type": "monthly", "price": 199, "durationInDays": 30, "benefits": [] },
+          "status": "active", "source": "purchase",
+          "startDate": "2026-10-29T15:29:12.002Z", "endDate": "2026-11-02T15:29:12.002Z",
+          "daysLeft": 3, "amountPaid": 0, "platform": "web", "createdAt": "2026-10-29T15:29:12.002Z"
+        }
+      ],
+      "expiringSoon": [
+        { "...": "subscriptions jaisa", "status": "active", "daysLeft": 3 }
+      ],
+      "tickets": [
+        {
+          "_id": "6ae4b7cf68f2d3a27286b048", "ticketId": "T2", "source": "contact_us",
+          "user": null, "name": "G", "email": "g@x.com",
+          "category": "feedback", "subject": "s", "platform": "android",
+          "status": "resolved", "priority": "medium", "assignedTo": null,
+          "createdAt": "2026-10-27T15:29:12.002Z"
+        }
+      ],
+      "movies": [
+        {
+          "_id": "6ae4b7d068f2d3a27286b05d", "title": "M3", "languages": ["Tamil"],
+          "image": "https://...", "accessType": "paid", "isActive": false,
+          "createdAt": "2026-10-29T15:29:12.002Z",
+          "category": { "_id": "6ae4b7cf68f2d3a27286b04e", "name": "Drama" }
+        }
+      ]
+    }
+  }
+}
+```
+
+> **Paise ka rule:** saare amounts (`revenue`, `amount`, `averageOrderValue`, `creditAppliedInRange`) **paise** mein hain. UI mein `/ 100` karke ₹ dikhao (`119800` → ₹1,198). Sirf `plan.price` rupees mein hai (kharidte waqt ka plan).
+
+### Blocks ka matlab
+
+**`overview`: KPI cards**
+
+| Field | Kya hai |
+| --- | --- |
+| newUsers, revenue, paidPayments, newSubscriptions, newTickets | `{ value, previous, changePercent }`. `value` is range ka hai, `previous` pichhle period ka. `changePercent` 1 decimal tak. Comparison off ho to `previous` aur `changePercent` dono `null`. `previous` 0 ho to `changePercent: null` (UI mein "New" ya `-` dikhao) |
+| totalUsers | Saare customers (abhi) |
+| activeSubscribers | Abhi plan wale unique users |
+| openTickets | `open` + `in_progress` tickets (abhi) |
+| totalMovies | Delete na hui movies (abhi) |
+
+Card UI: bada number `value`. Neeche `changePercent` likho: positive ho to green ▲, negative ho to red ▼. Revenue ko `/ 100` karke dikhao.
+
+**`charts`: line / bar / area chart**
+
+- `points` mein range ka har bucket aata hai, purana pehle. Jis bucket mein kuch nahi hua, wahan 0 aata hai (koi gap nahi), isliye seedha chart library ko de do.
+- `date` bucket ka start hai (IST): `week` mein Monday, `month` mein 1 tareekh. X-axis par `label` use karo (`29 Oct`, month mein `Oct 2026`).
+- `week` / `month` mein pehla bucket range se pehle shuru ho sakta hai. Jaise range 10 Oct se ho, to pehla week bucket `5 Oct` ka hoga, par usme data sirf 10 Oct se gina jata hai.
+
+| Series | Kya hai |
+| --- | --- |
+| signups | Naye users (createdAt) |
+| revenue | Paid payments ka total, **paise** (paidAt par) |
+| paidPayments / failedPayments | Paid (paidAt) / failed (createdAt) payments ki ginti |
+| newSubscriptions | Naye subscription periods (purchase, renewal, upgrade, admin grant) |
+| expiredSubscriptions | Jo plan apni endDate par khatam hue (upgrade / cancel wale nahi) |
+| tickets / resolvedTickets | Naye tickets / resolve ya close hue tickets |
+
+Chart suggestions:
+- Revenue: area chart
+- Signups vs naye subscriptions: line chart, 2 lines
+- Payments: stacked bar (paid / failed)
+- Tickets: bar chart (naye / resolved)
+- Upar ek `range` dropdown aur `groupBy` toggle (Din / Hafta / Mahina) rakho
+
+**`circles`: pie / donut (analysis circles)**
+
+Har circle: `{ total, items: [{ key, label, count, amount?, percent }] }`.
+- `label` seedha UI mein dikha sakte ho.
+- `percent` 1 decimal tak hota hai.
+- Fixed values wale circles (status, platform, ...) mein **har value hamesha aati hai**, 0 ke saath bhi, taaki colours fix rakh sako. Kisi record mein field hi na ho to ek extra `unknown` item aata hai.
+- `total: 0` ho to circle ki jagah "Abhi data nahi hai" dikhao.
+
+| Circle | Kis par | Items |
+| --- | --- | --- |
+| usersByLoginType | signups (range) | email, mobile, google, password, other |
+| usersByStatus | signups (range) | active, inactive |
+| usersByVerification | signups (range) | both, email_only, mobile_only, none |
+| paymentsByStatus | payments (range, createdAt) | created, paid, failed, expired |
+| paymentsByPurpose | paid payments (range) | new, renewal, upgrade |
+| paymentsByMethod | paid payments (range) | Razorpay method: upi, card, netbanking, wallet, ... (jo aaye). `amount` bhi |
+| revenueByPlatform | paid payments (range) | web, android, ios. **percent amount par** |
+| revenueByPlan | paid payments (range) | har plan (`key` = planId, `label` = plan naam). **percent amount par** |
+| activeSubscribersByPlan | abhi | har plan |
+| activeSubscribersByPlatform | abhi | web, android, ios |
+| subscriptionsBySource | naye periods (range) | purchase, renewal, upgrade, admin_grant |
+| ticketsByStatus | tickets (range) | open, in_progress, resolved, closed |
+| ticketsByCategory | tickets (range) | payment, subscription, playback, account, content_request, feedback, other |
+| ticketsByPriority | tickets (range) | low, medium, high |
+| ticketsBySource | tickets (range) | ticket, contact_us |
+| ticketsByPlatform | tickets (range) | web, android, ios |
+| moviesByAccessType | abhi | free, paid |
+| moviesByCategory | abhi | har category (`label` = naam). Bina category wali movie `Uncategorized` |
+| moviesByLanguage | abhi | top 10 languages + `other`. Ek movie ki 2 languages hon to dono mein gini jaati hai |
+| galleryByMediaType | abhi | image, gif, video |
+
+Jo circle date range par chalta hai, wo filter badalne par badalta hai. "abhi" wale circles hamesha aaj ke hote hain.
+
+**Section totals**
+
+| Block | Fields |
+| --- | --- |
+| users | `total`, `active`, `inactive`, `emailVerified`, `mobileVerified`, `signUpCompleted`, `onlineNow` (abhi) · `newInRange` (range) · `subscribed` (abhi plan wale) · `neverSubscribed` (kabhi plan nahi liya) |
+| subscriptions | `activeSubscribers`, `scheduled` (aage shuru hone wale), `expiringIn7Days` (7 din mein khatam, aage koi plan queue mein nahi) · `newInRange`, `expiredInRange`, `cancelledInRange`, `adminGrantsInRange` (range) · `upgradeAllowed` (setting) |
+| revenue | `today`, `thisMonth` (IST), `range`, `allTime`: har ek `{ amount (paise), count }`. `averageOrderValue` (paise) · `successRatePercent` = paid / (paid + failed + expired). Pending orders isme nahi gine jaate, aur data na ho to `null` · `creditAppliedInRange` (upgrade credit, paise). `platform` / `planId` filter yahan bhi lagta hai |
+| content | movies (`total`, `active`, `inactive`, `free`, `paid`, `withoutVideo`), categories / subCategories / banners / plans (`total`, `active`), gallery (`total`, `active`, `image`, `gif`, `video`) |
+| support | `totalInRange` (range) · `open`, `inProgress`, `unassignedOpen`, `highPriorityOpen` (abhi) · `avgResolutionHours`: range ke tickets resolve / close hone mein average kitne ghante lage. Koi resolve nahi hua to `null` |
+
+**`recent`: lists** (har list mein `recentLimit` tak items, naya pehle)
+
+| List | Kya hai | Click par |
+| --- | --- | --- |
+| users | Naye customers | `GET /subscriptions/admin/users/:userId` (4.7) |
+| payments | Latest paid payments (`paidAt` desc) | `GET /payments/admin/get/:id` (5.2) |
+| failedPayments | Latest failed payments, `failureReason` ke saath | 5.2 |
+| subscriptions | Latest subscription periods (koi bhi status) | 4.7 |
+| expiringSoon | Jinka plan 7 din mein khatam ho raha hai aur aage koi plan nahi hai, jiska pehle khatam ho raha hai wo upar. `daysLeft` ke saath | 4.7 (renewal reminder) |
+| tickets | Latest tickets + Contact Us. Contact Us mein `user: null` aata hai aur `name` / `email` aata hai | `GET /supports/admin/get/:id` (2.3) |
+| movies | Naye movies, `category` ke saath | Movie edit page |
+
+> `password`, `otp`, `fcmToken`, Razorpay signature aur location kabhi nahi aate.
+
+### Admin panel screen (suggestion)
+
+1. Sabse upar filter bar:
+   - Range dropdown: Aaj, Kal, 7 din, 30 din, 90 din, Is mahine, Pichhla mahina, Is saal, Shuru se, Custom
+   - Custom chuno to date picker
+   - Platform dropdown, plan dropdown (`GET /subscriptions/get-all?isActive=true`), "Compare" toggle
+2. KPI cards: Naye users, Revenue, Paid payments, Naye subscriptions, Naye tickets (har ek mein ▲▼ %). Unke neeche chhote cards: Total users, Active subscribers, Open tickets, Movies.
+3. Charts row: Revenue area chart + Signups / Subscriptions line chart. `groupBy` toggle.
+4. Circles grid: Revenue by plan, Revenue by platform, Payment status, Payment method, Subscribers by plan, Ticket category, Ticket status, Movies free / paid, Login type.
+5. Neeche tabs ya cards: "Plan khatam hone wale" (`expiringSoon`), Recent payments, Failed payments, Recent tickets, Naye users, Naye movies.
+
+Filter badalne par poori API dobara call karo. Ek call mein sab aata hai.
+
+### Errors
+
+| Status | message | Kab |
+| --- | --- | --- |
+| 401 | `Access Denied! Missing authorization token` | Token nahi bheja |
+| 403 | `Forbidden: You do not have permission to perform this action.` | Staff ya user token bheja |
+| 422 | `Range must be one of [today, yesterday, last_7_days, last_30_days, last_90_days, this_month, last_month, this_year, all_time, custom]` | Galat range |
+| 422 | `fromDate is required when range is custom` | `range=custom` bina `fromDate`, ya sirf `toDate` bheja |
+| 422 | `fromDate and toDate can only be used with range=custom` | Preset range (jaise `today`) ke saath dates bheji |
+| 422 | `toDate cannot be before fromDate` | |
+| 422 | `From Date is not a valid date` | Jaise `2026-02-30` |
+| 422 | `From Date must be a date in YYYY-MM-DD format` | Jaise `10-02-2026` |
+| 422 | `groupBy=day allows at most 366 days, use week or month` | Ek saal se bade range par `groupBy=day` |
+| 422 | `Group By must be one of [day, week, month]` | |
+| 422 | `Platform must be one of [web, android, ios]` | |
+| 422 | `Invalid Plan Id format` / `Invalid Category Id format` | ObjectId nahi hai |
+| 422 | `Recent Limit must be less than or equal to 20` / `Recent Limit must be greater than or equal to 1` | |
+| 422 | `Compare must be a boolean` | |
+| 422 | `Foo is not allowed` | Anjaan param bheja |
+
+Data na ho tab bhi **200** aata hai, zero aur khali arrays ke saath (404 kabhi nahi aata).
+
+---
+
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme admin/staff login, Support inbox aur Gallery management hain.
 - **2026-10-10:** Subscriptions (plans, upgrade setting, user subscriptions, grant, cancel), Payments (list, detail, sync, stats) aur Movies free / paid add kiye. Plan add / delete par ab admin token zaroori hai.
 - **2026-10-11:** Users list (`GET /users/get-all`) add kiya. Default `role=user`, saare user fields ke filters, aur har user ka chalta plan (`isSubscribed`, `subscription`, `hasScheduled`) + `isSubscribed` / `planId` filters.
+- **2026-10-30:** Dashboard (`GET /dashboard/admin`, sirf admin) add kiya: KPI cards + comparison, charts, 20 analysis circles, section totals, recent lists, aur date range / groupBy / platform / plan / category filters.
