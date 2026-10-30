@@ -242,4 +242,37 @@ module.exports = {
     MAX_PAGE_LIMIT: 50,
     MAX_ADMIN_PAGE_LIMIT: 100,
   }),
+
+  // Admin dashboard date presets (IST calendar days)
+  DASHBOARD_RANGES: Object.freeze({
+    TODAY: "today",
+    YESTERDAY: "yesterday",
+    LAST_7_DAYS: "last_7_days",
+    LAST_30_DAYS: "last_30_days",
+    LAST_90_DAYS: "last_90_days",
+    THIS_MONTH: "this_month",
+    LAST_MONTH: "last_month",
+    THIS_YEAR: "this_year",
+    ALL_TIME: "all_time",
+    CUSTOM: "custom",
+  }),
+
+  DASHBOARD_GROUP_BY: Object.freeze({
+    DAY: "day",
+    WEEK: "week",
+    MONTH: "month",
+  }),
+
+  DASHBOARD_LIMITS: Object.freeze({
+    TIMEZONE: "Asia/Kolkata",
+    DEFAULT_RANGE: "last_30_days",
+    DEFAULT_RECENT_LIMIT: 10,
+    MAX_RECENT_LIMIT: 20,
+    // groupBy=auto: up to 31 days → day, up to 180 → week, else month
+    AUTO_DAY_MAX_DAYS: 31,
+    AUTO_WEEK_MAX_DAYS: 180,
+    MAX_DAY_BUCKETS: 366,
+    EXPIRING_SOON_DAYS: 7,
+    TOP_LANGUAGES: 10,
+  }),
 };
