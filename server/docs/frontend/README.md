@@ -1,6 +1,6 @@
 # IFTV frontend API docs
 
-Last update: 2026-10-30
+Last update: 2026-11-03
 
 Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc mein feature-wise sections hain. Har API ke saath ye sab likha hai:
 
@@ -13,9 +13,9 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 
 | Doc | Kis team ke liye | Features |
 | --- | --- | --- |
-| [web-api.md](web-api.md) | Website (React / Next.js) | OTP login, Support (Contact Us + Tickets), Gallery, Subscription + Razorpay, Movies lock |
-| [app-api.md](app-api.md) | Android / iOS app | OTP login, Support (Tickets), Gallery, Subscription + Razorpay (Android), Movies lock |
-| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management, Subscriptions, Payments, Movies free / paid, Users list, Dashboard |
+| [web-api.md](web-api.md) | Website (React / Next.js) | OTP login, Support (Contact Us + Tickets), Gallery, Subscription + Razorpay, Movies lock, Movie views / plays |
+| [app-api.md](app-api.md) | Android / iOS app | OTP login, Support (Tickets), Gallery, Subscription + Razorpay (Android), Movies lock, Movie views / plays |
+| [admin-panel-api.md](admin-panel-api.md) | Admin panel | Admin/staff login, Support inbox, Gallery management, Subscriptions, Payments, Movies free / paid, Users list, Dashboard, Movie stats |
 
 ## Kaunsa API kis doc mein hai
 
@@ -78,6 +78,11 @@ Ye folder frontend teams ke liye hai. Har team ka **ek doc** hai, aur har doc me
 | Movies | `GET /movies/getAll`, `GET /movies/:id/get` (optional token, lock fields) | ✅ | ✅ | ✅ |
 | Movies | `POST /movies/add`, `PUT /movies/update/:id` (`accessType`, `allowedPlans`) | | | ✅ |
 | Dashboard | `GET /dashboard/admin` (sirf admin token; range, groupBy, platform, planId, categoryId filters) | | | ✅ |
+| Movie stats | `POST /movies/:id/track` (view / play, optional token, guest ko `deviceId`) | ✅ | ✅ | |
+| Movie stats | `GET /movies/getAll`, `GET /movies/:id/get` mein `stats` + `sortBy=views\|plays\|trending` | ✅ | ✅ | ✅ |
+| Movie stats | `GET /movies/stats` (sirf admin, saari movies ki ranking) | | | ✅ |
+| Movie stats | `GET /movies/:id/stats` (sirf admin, ek movie ki report) | | | ✅ |
+| Movie stats | `GET /movies/:id/viewers` (sirf admin, kisne dekhi) | | | ✅ |
 
 **Abhi in docs mein nahi hai:** Register, password login (user ke liye), Users profile (`/users/get`, `/users/update`), Categories, SubCategories, Banners, aur Movies ke baaki APIs (sirf free / paid lock wala hissa docs mein hai). Razorpay webhook (`POST /payments/webhook`) sirf server-to-server hai, Postman mein hai. Inki details Postman collection mein hain. Jaise-jaise ye final hote jaayenge, inke sections bhi yahan add honge.
 
@@ -99,3 +104,4 @@ Jab bhi koi naya API bane ya kisi API mein change ho:
 - **2026-10-10:** Subscription + Razorpay payments (web, app, admin) aur Movies free / paid lock add kiye.
 - **2026-10-11:** Admin panel mein Users list (`GET /users/get-all`) add kiya, har user ke current plan ke saath.
 - **2026-10-30:** Admin panel mein Dashboard (`GET /dashboard/admin`) add kiya: KPI cards, charts, analysis circles, recent lists aur filters.
+- **2026-11-03:** Movie views / plays: web + app ke liye `POST /movies/:id/track` aur movie mein `stats`; admin ke liye `GET /movies/stats`, `GET /movies/:id/stats`, `GET /movies/:id/viewers` aur dashboard mein movie views / plays + top movies.

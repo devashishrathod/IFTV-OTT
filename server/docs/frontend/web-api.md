@@ -1,14 +1,15 @@
 # IFTV Website: API doc
 
-Last update: 2026-10-10 · Index: [README.md](README.md)
+Last update: 2026-11-03 · Index: [README.md](README.md)
 
-Ye doc website team ke liye hai. Isme 5 features hain:
+Ye doc website team ke liye hai. Isme 6 features hain:
 
 1. [Auth: OTP login](#1-auth-otp-login) (mobile OTP aur email OTP)
 2. [Support](#2-support): Contact Us (bina login) aur Tickets (login ke baad)
 3. [Gallery](#3-gallery) (bina login)
 4. [Subscription + Payment (Razorpay)](#4-subscription--payment-razorpay): plans, plan kharidna, my plan, history, transactions, upgrade
 5. [Movies: free / paid lock](#5-movies-free--paid-lock)
+6. [Movies: views / plays (popularity)](#6-movies-views--plays-popularity)
 
 ---
 
@@ -1182,7 +1183,131 @@ Card par paid movie ke liye 🔒 / "Premium" badge dikhao (`accessType === "paid
 
 ---
 
+## 6. Movies: views / plays (popularity)
+
+Har movie ke neeche dikhana hai ki wo kitni baar **dekhi gayi (views)** aur kitni baar **play hui (plays)**. Iske liye website ko 2 kaam karne hain:
+
+1. Movie page khule aur video start ho, tab `POST /movies/:id/track` call karo.
+2. `GET /movies/getAll` / `GET /movies/:id/get` mein jo `stats` aata hai, wo movie ke neeche dikhao.
+
+### deviceId (zaroor padho)
+
+- Guest (bina login) ke liye `deviceId` **zaroori** hai. Iske bina `422 deviceId is required for guests` aata hai.
+- Website pehli baar khule to ek random id banao (`crypto.randomUUID()`), localStorage mein save karo, aur **har track call mein wahi bhejo** (login ho ya na ho). Isse ek hi browser baar-baar alag viewer nahi gina jaata.
+- Allowed: letters, numbers aur `. _ : -`, max 100 characters.
+
+### 6.1 View / play record karo
+
+`POST /movies/:id/track` · Auth: **optional** (login ho to token bhejo) · Body: JSON
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| event | string | **zaroori**. `view` = movie ka page khula, `play` = video sach mein start hua |
+| platform | string | `web` bhejo. Allowed: `web`, `android`, `ios` |
+| deviceId | string | guest ke liye zaroori, login user ke liye optional (phir bhi bhejo) |
+
+**Kab call karna hai:**
+- Movie detail page load hone par **ek baar** `event: "view"`.
+- Player mein video pehli baar chalne par (`play` / `playing` event) **ek baar** `event: "play"`. Pause → resume par dobara mat bhejo.
+- Locked movie (`isLocked: true`) par `play` mat bhejo. Bhejoge to bhi gina nahi jayega.
+- Ye call **background mein** karo (fire and forget). Fail ho to user ko error mat dikhao, page aur player waise hi chalne do.
+
+**Request:**
+
+```json
+{ "event": "view", "platform": "web", "deviceId": "3f6c1a2e-8a51-4c1e-9d6a-2f0e7b9c1d44" }
+```
+
+**Success 200 (gina gaya):**
+
+```json
+{
+  "success": true,
+  "message": "Movie event recorded",
+  "data": {
+    "counted": true,
+    "reason": null,
+    "stats": { "views": 1, "plays": 0, "viewsLabel": "1", "playsLabel": "0" }
+  }
+}
+```
+
+**Success 200 (gina nahi gaya):** ye error nahi hai, bas `counted: false` aata hai.
+
+```json
+{
+  "success": true,
+  "message": "Movie event not counted",
+  "data": {
+    "counted": false,
+    "reason": "repeat",
+    "stats": { "views": 1, "plays": 0, "viewsLabel": "1", "playsLabel": "0" }
+  }
+}
+```
+
+| reason | Kab |
+| --- | --- |
+| `null` | gina gaya |
+| `repeat` | Same viewer ne **30 minute** ke andar wahi event dobara bheja (page refresh). Platform alag ho tab bhi repeat hai |
+| `movie_locked` | Paid movie, aur user ke paas plan nahi hai (sirf `play` par) |
+| `staff` | Admin / staff token tha. Unki activity nahi gini jaati |
+
+`data.stats` hamesha movie ke latest numbers deta hai. Chaho to isse page par count turant update kar sakte ho.
+
+**Errors:**
+
+| Status | message | Kab |
+| --- | --- | --- |
+| 422 | `deviceId is required for guests` | Bina login (ya expire token) ke `deviceId` nahi bheja |
+| 422 | `Event is required` / `Event must be one of [view, play]` | |
+| 422 | `Platform must be one of [web, android, ios]` | |
+| 422 | `Device Id may only contain letters, numbers and . _ : -` | |
+| 422 | `Device Id length must be less than or equal to 100 characters long` | |
+| 422 | `Invalid Movie Id` | id ObjectId nahi hai |
+| 422 | `Foo is not allowed` | Anjaan field bheja |
+| 404 | `Movie not found` | Movie nahi hai ya delete ho gayi |
+
+> Token expire / galat ho to API guest ki tarah chalti hai, isliye `deviceId` hamesha bhejna safe hai.
+
+### 6.2 Movie ke neeche count dikhao
+
+`GET /movies/getAll` aur `GET /movies/:id/get` mein har movie ke saath ab `stats` aata hai:
+
+```json
+"stats": { "views": 1520, "plays": 830, "viewsLabel": "1.5K", "playsLabel": "830" }
+```
+
+| Field | Kya hai |
+| --- | --- |
+| views / plays | Ab tak ke total (number) |
+| viewsLabel / playsLabel | Dikhane ke liye chhota text: `1.5K`, `2.3M`. Seedha UI mein lagao |
+
+UI: card / detail page par `👁 {viewsLabel} views · ▶ {playsLabel} plays`. Purani movies jinka koi data nahi hai unme `0` aata hai. Locked movie mein bhi `stats` aata hai.
+
+### 6.3 Popular / trending list
+
+`GET /movies/getAll` ke `sortBy` mein ye nayi values:
+
+| sortBy | List |
+| --- | --- |
+| `plays` | Ab tak sabse zyada play hui (Most watched) |
+| `views` | Ab tak sabse zyada dekhi gayi |
+| `trending` | Pichhle **7 din** (aaj ko milake) mein sabse zyada play hui, barabar ho to zyada views wali upar |
+
+Default `sortOrder=desc` hai.
+
+```
+GET /movies/getAll?sortBy=trending&limit=10
+GET /movies/getAll?sortBy=plays&categoryId=6ae4b7cf68f2d3a27286b04d
+```
+
+Home page par "Trending now" row ke liye `sortBy=trending` aur "Most watched" ke liye `sortBy=plays` use karo.
+
+---
+
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme OTP login (mobile + email), Support (Contact Us + tickets) aur Gallery hain.
 - **2026-10-10:** Subscription + Razorpay payment (section 4) aur Movies free / paid lock (section 5) add kiye.
+- **2026-11-03:** Movie views / plays (section 6) add kiya: `POST /movies/:id/track`, har movie mein `stats`, aur `sortBy=views|plays|trending`.

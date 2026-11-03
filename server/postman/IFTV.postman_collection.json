@@ -7692,7 +7692,7 @@
                 {
                   "key": "sortBy",
                   "value": "createdAt",
-                  "description": "any field, default createdAt",
+                  "description": "any field, default createdAt. Also `views` / `plays` (all-time) and `trending` (plays, then views, of the last 7 days incl. today)",
                   "disabled": true
                 },
                 {
@@ -7709,7 +7709,7 @@
                 }
               ]
             },
-            "description": "Optional token (see folder description): adds `isLocked`, `lockReason`, `availableInPlans`; locked movies have `video: null`.\n\n| Status | message |\n| --- | --- |\n| 200 | Movies fetched successfully |\n| 422 | `Page must be greater than or equal to 1` / `Category Id contains an invalid value` / `Sort Order must be one of [asc, desc]` / `Access Type must be one of [free, paid]` / `Foo is not allowed` |\n| 404 | `No any movie found` |"
+            "description": "Every movie also has `stats: { views, plays, viewsLabel, playsLabel }` (all-time; labels like `1.5K`, `2.3M`; `0` for movies without data). See the *Movie Stats* folder.\n\nOptional token (see folder description): adds `isLocked`, `lockReason`, `availableInPlans`; locked movies have `video: null`.\n\n| Status | message |\n| --- | --- |\n| 200 | Movies fetched successfully |\n| 422 | `Page must be greater than or equal to 1` / `Category Id contains an invalid value` / `Sort Order must be one of [asc, desc]` / `Access Type must be one of [free, paid]` / `Foo is not allowed` |\n| 404 | `No any movie found` |"
           },
           "response": [
             {
@@ -7794,7 +7794,7 @@
                     {
                       "key": "sortBy",
                       "value": "createdAt",
-                      "description": "any field, default createdAt",
+                      "description": "any field, default createdAt. Also `views` / `plays` (all-time) and `trending` (plays, then views, of the last 7 days incl. today)",
                       "disabled": true
                     },
                     {
@@ -7900,7 +7900,7 @@
                     {
                       "key": "sortBy",
                       "value": "createdAt",
-                      "description": "any field, default createdAt",
+                      "description": "any field, default createdAt. Also `views` / `plays` (all-time) and `trending` (plays, then views, of the last 7 days incl. today)",
                       "disabled": true
                     },
                     {
@@ -8066,7 +8066,7 @@
                 "get"
               ]
             },
-            "description": "If the duration is missing, it is fetched from Cloudflare and saved. Optional token: same lock fields as *Get all movies*.\n\n| Status | message |\n| --- | --- |\n| 200 | Movie fetched successfully |\n| 422 | `Invalid Movie Id` |\n| 404 | `Movie not found` |"
+            "description": "Every movie also has `stats: { views, plays, viewsLabel, playsLabel }` (all-time; labels like `1.5K`, `2.3M`; `0` for movies without data). See the *Movie Stats* folder.\n\nIf the duration is missing, it is fetched from Cloudflare and saved. Optional token: same lock fields as *Get all movies*.\n\n| Status | message |\n| --- | --- |\n| 200 | Movie fetched successfully |\n| 422 | `Invalid Movie Id` |\n| 404 | `Movie not found` |"
           },
           "response": [
             {
@@ -8259,7 +8259,7 @@
                 "{{movieId}}"
               ]
             },
-            "description": "All fields optional (same rules as create). An empty body returns the movie unchanged. To swap the video, send `videoUid` here or a `video` file in the form-data request.\n\n| Field | Type | Notes |\n| --- | --- | --- |\n| accessType | enum | `free` | `paid`. Switching to free clears `allowedPlans` |\n| allowedPlans | ObjectId[] | paid only; replaces the list; `[]` = any active plan. Not sent → kept |\n\n| Status | message |\n| --- | --- |\n| 200 | Movie updated successfully |\n| 422 | `Invalid movie Id` / `Title must have at least 3 characters` / `Access Type must be one of [free, paid]` / `One or more plans in allowedPlans were not found` / other Joi messages |\n| 404 | `Movie not found` / `Category not found` |\n| 400 | `Movie already exists with this title.` |"
+            "description": "All fields optional (same rules as create). An empty body returns the movie unchanged. To swap the video, send `videoUid` here or a `video` file in the form-data request.\n\n| Field | Type | Notes |\n| --- | --- | --- |\n| accessType | enum | `free` | `paid`. Switching to free clears `allowedPlans` |\n| allowedPlans | ObjectId[] | paid only; replaces the list; `[]` = any active plan. Not sent → kept |\n\n| Status | message |\n| --- | --- |\n| 200 | Movie updated successfully |\n| 422 | `Invalid movie Id` / `Title must have at least 3 characters` / `Access Type must be one of [free, paid]` / `One or more plans in allowedPlans were not found` / other Joi messages |\n| 404 | `Movie not found` / `Category not found` |\n| 400 | `Movie already exists with this title.` |\n\n`stats` can't be set here (`422 Stats is not allowed`)."
           },
           "response": [
             {
@@ -8576,7 +8576,7 @@
                 "{{movieId}}"
               ]
             },
-            "description": "Form-data update for replacing the poster and/or video. The old files are deleted only after the new ones are saved."
+            "description": "Form-data update for replacing the poster and/or video. The old files are deleted only after the new ones are saved.\n\n`stats` can't be set here (`422 Stats is not allowed`)."
           },
           "response": [
             {
@@ -20303,7 +20303,7 @@
                 {
                   "key": "platform",
                   "value": "web",
-                  "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                  "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                   "disabled": true
                 },
                 {
@@ -20315,7 +20315,7 @@
                 {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
-                  "description": "Category ObjectId. Applies to content movies + recent movies",
+                  "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                   "disabled": true
                 },
                 {
@@ -20332,7 +20332,7 @@
                 }
               ]
             },
-            "description": "Admin panel home page: KPI cards, charts, analysis circles (pie / donut), section totals and recent lists in **one call**. **Admin only** (staff / user get 403). All query params are optional.\n\n**Rule:** flow numbers (signups, payments / revenue, new subscriptions, new tickets) follow the date range. State numbers (active subscribers, scheduled, expiring soon, catalog counts, open ticket queue) are always as of now. Recent lists ignore the date range (always latest). Users are `role: user` only, not deleted. Amounts are **paise** (INR). Dates are IST.\n\n| Filter | Users | Payments | Subscriptions | Support | Content | Recent |\n| --- | --- | --- | --- | --- | --- | --- |\n| date range | ✅ signups | ✅ | ✅ + snapshot | ✅ + snapshot | ❌ | ❌ |\n| platform | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ where field exists |\n| planId | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ payments / subscriptions |\n| categoryId | ❌ | ❌ | ❌ | ❌ | ✅ movies | ✅ movies |\n\n**data**\n- `filters`: applied range (`fromDate`, `toDate`, `days`, `groupBy`, `previousFromDate`, `previousToDate`, `compare`), filters, `timezone`, `currency`, `amountUnit`.\n- `overview`: KPI cards `newUsers`, `revenue`, `paidPayments`, `newSubscriptions`, `newTickets` as `{ value, previous, changePercent }` (previous null when no comparison, changePercent null when previous is 0); snapshot `totalUsers`, `activeSubscribers`, `openTickets`, `totalMovies`.\n- `charts`: `{ groupBy, points: [{ date, label, signups, revenue, paidPayments, failedPayments, newSubscriptions, expiredSubscriptions, tickets, resolvedTickets }] }`. Every bucket present (zeros filled). `date` = bucket start (week = Monday, month = 1st).\n- `circles`: each `{ total, items: [{ key, label, count, amount?, percent }] }`. Enum circles list every value (zeros too, \"unknown\" for missing fields). usersByLoginType, usersByStatus, usersByVerification, paymentsByStatus, paymentsByPurpose, paymentsByMethod, revenueByPlatform (percent on amount), revenueByPlan (percent on amount), activeSubscribersByPlan, activeSubscribersByPlatform, subscriptionsBySource, ticketsByStatus, ticketsByCategory, ticketsByPriority, ticketsBySource, ticketsByPlatform, moviesByAccessType, moviesByCategory, moviesByLanguage (top 10 + other), galleryByMediaType.\n- `users`, `subscriptions`, `revenue`, `content`, `support`: section totals.\n- `recent`: users, payments (paid), failedPayments, subscriptions, expiringSoon (current period ends in 7 days and nothing scheduled after, soonest first), tickets, movies.\n\nNo data → still **200** with zeros / empty arrays.\n\n| Status | message |\n| --- | --- |\n| 200 | `Dashboard fetched successfully` |\n| 401 | `Access Denied! Missing authorization token` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (staff / user) |\n| 422 | `Range must be one of [today, yesterday, ...]` |\n| 422 | `fromDate is required when range is custom` |\n| 422 | `fromDate and toDate can only be used with range=custom` |\n| 422 | `toDate cannot be before fromDate` |\n| 422 | `From Date is not a valid date` / `From Date must be a date in YYYY-MM-DD format` |\n| 422 | `groupBy=day allows at most 366 days, use week or month` |\n| 422 | `Invalid Plan Id format` / `Invalid Category Id format` |\n| 422 | `Recent Limit must be less than or equal to 20` |"
+            "description": "Admin panel home page: KPI cards, charts, analysis circles (pie / donut), section totals and recent lists in **one call**. **Admin only** (staff / user get 403). All query params are optional.\n\n**Rule:** flow numbers (signups, payments / revenue, new subscriptions, new tickets) follow the date range. State numbers (active subscribers, scheduled, expiring soon, catalog counts, open ticket queue) are always as of now. Recent lists ignore the date range (always latest). Users are `role: user` only, not deleted. Amounts are **paise** (INR). Dates are IST.\n\n| Filter | Users | Payments | Subscriptions | Support | Content | Recent |\n| --- | --- | --- | --- | --- | --- | --- |\n| date range | ✅ signups | ✅ | ✅ + snapshot | ✅ + snapshot | ❌ | ❌ |\n| platform | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ where field exists |\n| planId | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ payments / subscriptions |\n| categoryId | ❌ | ❌ | ❌ | ❌ | ✅ movies | ✅ movies |\n\nMovie views / plays (`overview.movieViews` / `moviePlays`, chart `movieViews` / `moviePlays`, `content.topMovies`): date range ✅, platform ✅, categoryId ✅, planId ❌.\n\n**data**\n- `filters`: applied range (`fromDate`, `toDate`, `days`, `groupBy`, `previousFromDate`, `previousToDate`, `compare`), filters, `timezone`, `currency`, `amountUnit`.\n- `overview`: KPI cards `newUsers`, `revenue`, `paidPayments`, `newSubscriptions`, `newTickets` as `{ value, previous, changePercent }` (previous null when no comparison, changePercent null when previous is 0); snapshot `totalUsers`, `activeSubscribers`, `openTickets`, `totalMovies`; `movieViews`, `moviePlays` as `{ value, previous, changePercent }` (range, platform + categoryId apply).\n- `charts`: `{ groupBy, points: [{ date, label, signups, revenue, paidPayments, failedPayments, newSubscriptions, expiredSubscriptions, tickets, resolvedTickets, movieViews, moviePlays }] }`. Every bucket present (zeros filled). `date` = bucket start (week = Monday, month = 1st).\n- `circles`: each `{ total, items: [{ key, label, count, amount?, percent }] }`. Enum circles list every value (zeros too, \"unknown\" for missing fields). usersByLoginType, usersByStatus, usersByVerification, paymentsByStatus, paymentsByPurpose, paymentsByMethod, revenueByPlatform (percent on amount), revenueByPlan (percent on amount), activeSubscribersByPlan, activeSubscribersByPlatform, subscriptionsBySource, ticketsByStatus, ticketsByCategory, ticketsByPriority, ticketsBySource, ticketsByPlatform, moviesByAccessType, moviesByCategory, moviesByLanguage (top 10 + other), galleryByMediaType.\n- `users`, `subscriptions`, `revenue`, `content`, `support`: section totals. `content.topMovies`: top 5 movies by plays in the range `[{ rank, _id, title, image, accessType, isActive, views, uniqueViewers, plays, uniquePlayers, playRate }]` (follows range, platform, categoryId).\n- `recent`: users, payments (paid), failedPayments, subscriptions, expiringSoon (current period ends in 7 days and nothing scheduled after, soonest first), tickets, movies.\n\nNo data → still **200** with zeros / empty arrays.\n\n| Status | message |\n| --- | --- |\n| 200 | `Dashboard fetched successfully` |\n| 401 | `Access Denied! Missing authorization token` |\n| 403 | `Forbidden: You do not have permission to perform this action.` (staff / user) |\n| 422 | `Range must be one of [today, yesterday, ...]` |\n| 422 | `fromDate is required when range is custom` |\n| 422 | `fromDate and toDate can only be used with range=custom` |\n| 422 | `toDate cannot be before fromDate` |\n| 422 | `From Date is not a valid date` / `From Date must be a date in YYYY-MM-DD format` |\n| 422 | `groupBy=day allows at most 366 days, use week or month` |\n| 422 | `Invalid Plan Id format` / `Invalid Category Id format` |\n| 422 | `Recent Limit must be less than or equal to 20` |"
           },
           "response": [
             {
@@ -20383,7 +20383,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20395,7 +20395,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20466,7 +20466,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20478,7 +20478,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20556,7 +20556,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20568,7 +20568,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20646,7 +20646,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20658,7 +20658,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20735,7 +20735,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20747,7 +20747,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20824,7 +20824,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20836,7 +20836,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -20912,7 +20912,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -20924,7 +20924,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21000,7 +21000,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21012,7 +21012,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21089,7 +21089,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21101,7 +21101,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21176,7 +21176,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21188,7 +21188,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21266,7 +21266,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21277,7 +21277,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21355,7 +21355,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21367,7 +21367,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21445,7 +21445,7 @@
                 {
                   "key": "platform",
                   "value": "web",
-                  "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                  "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                   "disabled": true
                 },
                 {
@@ -21457,7 +21457,7 @@
                 {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
-                  "description": "Category ObjectId. Applies to content movies + recent movies",
+                  "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                   "disabled": true
                 },
                 {
@@ -21524,7 +21524,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21536,7 +21536,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21612,7 +21612,7 @@
                 {
                   "key": "platform",
                   "value": "web",
-                  "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                  "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                   "disabled": true
                 },
                 {
@@ -21624,7 +21624,7 @@
                 {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
-                  "description": "Category ObjectId. Applies to content movies + recent movies",
+                  "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                   "disabled": true
                 },
                 {
@@ -21689,7 +21689,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -21701,7 +21701,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -21779,7 +21779,7 @@
                 {
                   "key": "platform",
                   "value": "web",
-                  "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)"
+                  "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)"
                 },
                 {
                   "key": "planId",
@@ -21789,7 +21789,7 @@
                 {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
-                  "description": "Category ObjectId. Applies to content movies + recent movies"
+                  "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies"
                 },
                 {
                   "key": "compare",
@@ -21855,7 +21855,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)"
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)"
                     },
                     {
                       "key": "planId",
@@ -21865,7 +21865,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies"
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies"
                     },
                     {
                       "key": "compare",
@@ -21942,7 +21942,7 @@
                 {
                   "key": "platform",
                   "value": "web",
-                  "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                  "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                   "disabled": true
                 },
                 {
@@ -21954,7 +21954,7 @@
                 {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
-                  "description": "Category ObjectId. Applies to content movies + recent movies",
+                  "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                   "disabled": true
                 },
                 {
@@ -22021,7 +22021,7 @@
                     {
                       "key": "platform",
                       "value": "web",
-                      "description": "web | android | ios. Applies to payments, subscriptions, tickets (not users)",
+                      "description": "web | android | ios. Applies to payments, subscriptions, tickets, movie views / plays (not users)",
                       "disabled": true
                     },
                     {
@@ -22033,7 +22033,7 @@
                     {
                       "key": "categoryId",
                       "value": "{{categoryId}}",
-                      "description": "Category ObjectId. Applies to content movies + recent movies",
+                      "description": "Category ObjectId. Applies to content movies, movie views / plays, top movies + recent movies",
                       "disabled": true
                     },
                     {
@@ -22061,6 +22061,1341 @@
               ],
               "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Dashboard fetched successfully\",\n  \"data\": {\n    \"filters\": {\n      \"range\": \"all_time\",\n      \"fromDate\": \"2026-04-13\",\n      \"toDate\": \"2026-10-30\",\n      \"days\": 201,\n      \"groupBy\": \"month\",\n      \"platform\": null,\n      \"planId\": null,\n      \"categoryId\": null,\n      \"recentLimit\": 1,\n      \"compare\": false,\n      \"previousFromDate\": null,\n      \"previousToDate\": null,\n      \"timezone\": \"Asia/Kolkata\",\n      \"currency\": \"INR\",\n      \"amountUnit\": \"paise\"\n    },\n    \"overview\": {\n      \"newUsers\": {\n        \"value\": 5,\n        \"previous\": null,\n        \"changePercent\": null\n      },\n      \"revenue\": {\n        \"value\": 159600,\n        \"previous\": null,\n        \"changePercent\": null\n      },\n      \"paidPayments\": {\n        \"value\": 4,\n        \"previous\": null,\n        \"changePercent\": null\n      },\n      \"newSubscriptions\": {\n        \"value\": 6,\n        \"previous\": null,\n        \"changePercent\": null\n      },\n      \"newTickets\": {\n        \"value\": 4,\n        \"previous\": null,\n        \"changePercent\": null\n      },\n      \"totalUsers\": 5,\n      \"activeSubscribers\": 3,\n      \"openTickets\": 2,\n      \"totalMovies\": 4\n    },\n    \"charts\": {\n      \"groupBy\": \"month\",\n      \"points\": [\n        {\n          \"date\": \"2026-04-01\",\n          \"label\": \"Apr 2026\",\n          \"signups\": 0,\n          \"revenue\": 19900,\n          \"paidPayments\": 1,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 0,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 0,\n          \"resolvedTickets\": 0\n        },\n        {\n          \"date\": \"2026-05-01\",\n          \"label\": \"May 2026\",\n          \"signups\": 0,\n          \"revenue\": 0,\n          \"paidPayments\": 0,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 0,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 0,\n          \"resolvedTickets\": 0\n        },\n        {\n          \"date\": \"2026-06-01\",\n          \"label\": \"Jun 2026\",\n          \"signups\": 0,\n          \"revenue\": 0,\n          \"paidPayments\": 0,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 0,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 0,\n          \"resolvedTickets\": 0\n        },\n        {\n          \"date\": \"2026-07-01\",\n          \"label\": \"Jul 2026\",\n          \"signups\": 0,\n          \"revenue\": 0,\n          \"paidPayments\": 0,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 0,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 0,\n          \"resolvedTickets\": 0\n        },\n        {\n          \"date\": \"2026-08-01\",\n          \"label\": \"Aug 2026\",\n          \"signups\": 0,\n          \"revenue\": 0,\n          \"paidPayments\": 0,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 0,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 0,\n          \"resolvedTickets\": 0\n        },\n        {\n          \"date\": \"2026-09-01\",\n          \"label\": \"Sep 2026\",\n          \"signups\": 2,\n          \"revenue\": 19900,\n          \"paidPayments\": 1,\n          \"failedPayments\": 0,\n          \"newSubscriptions\": 1,\n          \"expiredSubscriptions\": 0,\n          \"tickets\": 1,\n          \"resolvedTickets\": 1\n        },\n        {\n          \"date\": \"2026-10-01\",\n          \"label\": \"Oct 2026\",\n          \"signups\": 3,\n          \"revenue\": 119800,\n          \"paidPayments\": 2,\n          \"failedPayments\": 1,\n          \"newSubscriptions\": 5,\n          \"expiredSubscriptions\": 1,\n          \"tickets\": 3,\n          \"resolvedTickets\": 1\n        }\n      ]\n    },\n    \"circles\": {\n      \"usersByLoginType\": {\n        \"total\": 5,\n        \"items\": [\n          {\n            \"key\": \"email\",\n            \"label\": \"Email\",\n            \"count\": 1,\n            \"percent\": 20\n          },\n          {\n            \"key\": \"mobile\",\n            \"label\": \"Mobile\",\n            \"count\": 1,\n            \"percent\": 20\n          },\n          {\n            \"key\": \"google\",\n            \"label\": \"Google\",\n            \"count\": 1,\n            \"percent\": 20\n          },\n          {\n            \"key\": \"password\",\n            \"label\": \"Password\",\n            \"count\": 2,\n            \"percent\": 40\n          },\n          {\n            \"key\": \"other\",\n            \"label\": \"Other\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"usersByStatus\": {\n        \"total\": 5,\n        \"items\": [\n          {\n            \"key\": \"active\",\n            \"label\": \"Active\",\n            \"count\": 4,\n            \"percent\": 80\n          },\n          {\n            \"key\": \"inactive\",\n            \"label\": \"Inactive\",\n            \"count\": 1,\n            \"percent\": 20\n          }\n        ]\n      },\n      \"usersByVerification\": {\n        \"total\": 5,\n        \"items\": [\n          {\n            \"key\": \"both\",\n            \"label\": \"Both\",\n            \"count\": 1,\n            \"percent\": 20\n          },\n          {\n            \"key\": \"email_only\",\n            \"label\": \"Email Only\",\n            \"count\": 1,\n            \"percent\": 20\n          },\n          {\n            \"key\": \"mobile_only\",\n            \"label\": \"Mobile Only\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"none\",\n            \"label\": \"None\",\n            \"count\": 3,\n            \"percent\": 60\n          }\n        ]\n      },\n      \"paymentsByStatus\": {\n        \"total\": 7,\n        \"items\": [\n          {\n            \"key\": \"created\",\n            \"label\": \"Created\",\n            \"count\": 1,\n            \"percent\": 14.3\n          },\n          {\n            \"key\": \"paid\",\n            \"label\": \"Paid\",\n            \"count\": 4,\n            \"percent\": 57.1\n          },\n          {\n            \"key\": \"failed\",\n            \"label\": \"Failed\",\n            \"count\": 1,\n            \"percent\": 14.3\n          },\n          {\n            \"key\": \"expired\",\n            \"label\": \"Expired\",\n            \"count\": 1,\n            \"percent\": 14.3\n          }\n        ]\n      },\n      \"paymentsByPurpose\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"new\",\n            \"label\": \"New\",\n            \"count\": 3,\n            \"percent\": 75\n          },\n          {\n            \"key\": \"renewal\",\n            \"label\": \"Renewal\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"upgrade\",\n            \"label\": \"Upgrade\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"paymentsByMethod\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"upi\",\n            \"label\": \"UPI\",\n            \"count\": 2,\n            \"amount\": 39800,\n            \"percent\": 50\n          },\n          {\n            \"key\": \"card\",\n            \"label\": \"Card\",\n            \"count\": 1,\n            \"amount\": 99900,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"netbanking\",\n            \"label\": \"Net Banking\",\n            \"count\": 1,\n            \"amount\": 19900,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"revenueByPlatform\": {\n        \"total\": 159600,\n        \"items\": [\n          {\n            \"key\": \"web\",\n            \"label\": \"Web\",\n            \"count\": 2,\n            \"amount\": 39800,\n            \"percent\": 24.9\n          },\n          {\n            \"key\": \"android\",\n            \"label\": \"Android\",\n            \"count\": 2,\n            \"amount\": 119800,\n            \"percent\": 75.1\n          },\n          {\n            \"key\": \"ios\",\n            \"label\": \"iOS\",\n            \"count\": 0,\n            \"amount\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"revenueByPlan\": {\n        \"total\": 159600,\n        \"items\": [\n          {\n            \"key\": \"6ae4b7cd68f2d3a27286b02d\",\n            \"label\": \"Yearly\",\n            \"count\": 1,\n            \"amount\": 99900,\n            \"percent\": 62.6\n          },\n          {\n            \"key\": \"6ae4b7cd68f2d3a27286b02c\",\n            \"label\": \"Monthly\",\n            \"count\": 3,\n            \"amount\": 59700,\n            \"percent\": 37.4\n          }\n        ]\n      },\n      \"activeSubscribersByPlan\": {\n        \"total\": 3,\n        \"items\": [\n          {\n            \"key\": \"6ae4b7cd68f2d3a27286b02c\",\n            \"label\": \"Monthly\",\n            \"count\": 2,\n            \"percent\": 66.7\n          },\n          {\n            \"key\": \"6ae4b7cd68f2d3a27286b02d\",\n            \"label\": \"Yearly\",\n            \"count\": 1,\n            \"percent\": 33.3\n          }\n        ]\n      },\n      \"activeSubscribersByPlatform\": {\n        \"total\": 3,\n        \"items\": [\n          {\n            \"key\": \"web\",\n            \"label\": \"Web\",\n            \"count\": 2,\n            \"percent\": 66.7\n          },\n          {\n            \"key\": \"android\",\n            \"label\": \"Android\",\n            \"count\": 1,\n            \"percent\": 33.3\n          },\n          {\n            \"key\": \"ios\",\n            \"label\": \"iOS\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"subscriptionsBySource\": {\n        \"total\": 6,\n        \"items\": [\n          {\n            \"key\": \"purchase\",\n            \"label\": \"Purchase\",\n            \"count\": 4,\n            \"percent\": 66.7\n          },\n          {\n            \"key\": \"renewal\",\n            \"label\": \"Renewal\",\n            \"count\": 1,\n            \"percent\": 16.7\n          },\n          {\n            \"key\": \"upgrade\",\n            \"label\": \"Upgrade\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"admin_grant\",\n            \"label\": \"Admin Grant\",\n            \"count\": 1,\n            \"percent\": 16.7\n          }\n        ]\n      },\n      \"ticketsByStatus\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"open\",\n            \"label\": \"Open\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"in_progress\",\n            \"label\": \"In Progress\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"resolved\",\n            \"label\": \"Resolved\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"closed\",\n            \"label\": \"Closed\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"ticketsByCategory\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"payment\",\n            \"label\": \"Payment\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"subscription\",\n            \"label\": \"Subscription\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"playback\",\n            \"label\": \"Playback\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"account\",\n            \"label\": \"Account\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"content_request\",\n            \"label\": \"Content Request\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"feedback\",\n            \"label\": \"Feedback\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"other\",\n            \"label\": \"Other\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"ticketsByPriority\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"low\",\n            \"label\": \"Low\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"medium\",\n            \"label\": \"Medium\",\n            \"count\": 2,\n            \"percent\": 50\n          },\n          {\n            \"key\": \"high\",\n            \"label\": \"High\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"ticketsBySource\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"ticket\",\n            \"label\": \"Ticket\",\n            \"count\": 3,\n            \"percent\": 75\n          },\n          {\n            \"key\": \"contact_us\",\n            \"label\": \"Contact Us\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"ticketsByPlatform\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"web\",\n            \"label\": \"Web\",\n            \"count\": 2,\n            \"percent\": 50\n          },\n          {\n            \"key\": \"android\",\n            \"label\": \"Android\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"ios\",\n            \"label\": \"iOS\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"moviesByAccessType\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"free\",\n            \"label\": \"Free\",\n            \"count\": 2,\n            \"percent\": 50\n          },\n          {\n            \"key\": \"paid\",\n            \"label\": \"Paid\",\n            \"count\": 2,\n            \"percent\": 50\n          }\n        ]\n      },\n      \"moviesByCategory\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"6ae4b7cf68f2d3a27286b04d\",\n            \"label\": \"Action\",\n            \"count\": 3,\n            \"percent\": 75\n          },\n          {\n            \"key\": \"6ae4b7cf68f2d3a27286b04e\",\n            \"label\": \"Drama\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"moviesByLanguage\": {\n        \"total\": 5,\n        \"items\": [\n          {\n            \"key\": \"English\",\n            \"label\": \"English\",\n            \"count\": 2,\n            \"percent\": 40\n          },\n          {\n            \"key\": \"Hindi\",\n            \"label\": \"Hindi\",\n            \"count\": 2,\n            \"percent\": 40\n          },\n          {\n            \"key\": \"Tamil\",\n            \"label\": \"Tamil\",\n            \"count\": 1,\n            \"percent\": 20\n          }\n        ]\n      },\n      \"galleryByMediaType\": {\n        \"total\": 3,\n        \"items\": [\n          {\n            \"key\": \"image\",\n            \"label\": \"Image\",\n            \"count\": 1,\n            \"percent\": 33.3\n          },\n          {\n            \"key\": \"gif\",\n            \"label\": \"Gif\",\n            \"count\": 1,\n            \"percent\": 33.3\n          },\n          {\n            \"key\": \"video\",\n            \"label\": \"Video\",\n            \"count\": 1,\n            \"percent\": 33.3\n          }\n        ]\n      }\n    },\n    \"users\": {\n      \"total\": 5,\n      \"active\": 4,\n      \"inactive\": 1,\n      \"emailVerified\": 2,\n      \"mobileVerified\": 1,\n      \"signUpCompleted\": 1,\n      \"onlineNow\": 1,\n      \"newInRange\": 5,\n      \"subscribed\": 3,\n      \"neverSubscribed\": 1\n    },\n    \"subscriptions\": {\n      \"activeSubscribers\": 3,\n      \"scheduled\": 1,\n      \"expiringIn7Days\": 1,\n      \"newInRange\": 6,\n      \"expiredInRange\": 1,\n      \"cancelledInRange\": 1,\n      \"adminGrantsInRange\": 1,\n      \"upgradeAllowed\": true\n    },\n    \"revenue\": {\n      \"today\": {\n        \"amount\": 19900,\n        \"count\": 1\n      },\n      \"thisMonth\": {\n        \"amount\": 119800,\n        \"count\": 2\n      },\n      \"range\": {\n        \"amount\": 159600,\n        \"count\": 4\n      },\n      \"allTime\": {\n        \"amount\": 159600,\n        \"count\": 4\n      },\n      \"averageOrderValue\": 39900,\n      \"successRatePercent\": 66.7,\n      \"creditAppliedInRange\": 0\n    },\n    \"content\": {\n      \"movies\": {\n        \"total\": 4,\n        \"active\": 3,\n        \"inactive\": 1,\n        \"free\": 2,\n        \"paid\": 2,\n        \"withoutVideo\": 2\n      },\n      \"categories\": {\n        \"total\": 2,\n        \"active\": 1\n      },\n      \"subCategories\": {\n        \"total\": 1,\n        \"active\": 1\n      },\n      \"banners\": {\n        \"total\": 2,\n        \"active\": 1\n      },\n      \"gallery\": {\n        \"total\": 3,\n        \"active\": 2,\n        \"image\": 1,\n        \"gif\": 1,\n        \"video\": 1\n      },\n      \"plans\": {\n        \"total\": 3,\n        \"active\": 2\n      }\n    },\n    \"support\": {\n      \"totalInRange\": 4,\n      \"open\": 1,\n      \"inProgress\": 1,\n      \"unassignedOpen\": 1,\n      \"highPriorityOpen\": 1,\n      \"avgResolutionHours\": 17\n    },\n    \"recent\": {\n      \"users\": [\n        {\n          \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n          \"name\": \"U1\",\n          \"loginType\": \"google\",\n          \"email\": \"u1@x.com\",\n          \"isEmailVerified\": true,\n          \"isMobileVerified\": false,\n          \"isActive\": true,\n          \"createdAt\": \"2026-10-30T15:29:11.002Z\"\n        }\n      ],\n      \"payments\": [\n        {\n          \"_id\": \"6ae4b7ce68f2d3a27286b038\",\n          \"planId\": \"6ae4b7cd68f2d3a27286b02c\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199\n          },\n          \"purpose\": \"new\",\n          \"amount\": 19900,\n          \"currency\": \"INR\",\n          \"status\": \"paid\",\n          \"receipt\": \"R1\",\n          \"method\": \"upi\",\n          \"paidAt\": \"2026-10-30T15:29:11.002Z\",\n          \"platform\": \"web\",\n          \"createdAt\": \"2026-10-30T15:29:11.002Z\",\n          \"user\": {\n            \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n            \"name\": \"U1\",\n            \"email\": \"u1@x.com\"\n          }\n        }\n      ],\n      \"failedPayments\": [\n        {\n          \"_id\": \"6ae4b7ce68f2d3a27286b03a\",\n          \"planId\": \"6ae4b7cd68f2d3a27286b02c\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199\n          },\n          \"purpose\": \"new\",\n          \"amount\": 19900,\n          \"currency\": \"INR\",\n          \"status\": \"failed\",\n          \"receipt\": \"R3\",\n          \"failureReason\": \"declined\",\n          \"platform\": \"web\",\n          \"createdAt\": \"2026-10-28T15:29:12.002Z\",\n          \"user\": {\n            \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n            \"name\": \"U1\",\n            \"email\": \"u1@x.com\"\n          }\n        }\n      ],\n      \"subscriptions\": [\n        {\n          \"_id\": \"6ae4b7ce68f2d3a27286b040\",\n          \"user\": {\n            \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n            \"name\": \"U1\",\n            \"email\": \"u1@x.com\"\n          },\n          \"planId\": \"6ae4b7cd68f2d3a27286b02c\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199,\n            \"durationInDays\": 30,\n            \"benefits\": []\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-10-29T15:29:12.002Z\",\n          \"endDate\": \"2026-11-02T15:29:12.002Z\",\n          \"daysLeft\": 3,\n          \"amountPaid\": 0,\n          \"platform\": \"web\",\n          \"createdAt\": \"2026-10-29T15:29:12.002Z\"\n        }\n      ],\n      \"expiringSoon\": [\n        {\n          \"_id\": \"6ae4b7ce68f2d3a27286b040\",\n          \"user\": {\n            \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n            \"name\": \"U1\",\n            \"email\": \"u1@x.com\"\n          },\n          \"planId\": \"6ae4b7cd68f2d3a27286b02c\",\n          \"plan\": {\n            \"name\": \"Monthly\",\n            \"type\": \"monthly\",\n            \"price\": 199,\n            \"durationInDays\": 30,\n            \"benefits\": []\n          },\n          \"status\": \"active\",\n          \"source\": \"purchase\",\n          \"startDate\": \"2026-10-29T15:29:12.002Z\",\n          \"endDate\": \"2026-11-02T15:29:12.002Z\",\n          \"daysLeft\": 3,\n          \"amountPaid\": 0,\n          \"platform\": \"web\",\n          \"createdAt\": \"2026-10-29T15:29:12.002Z\"\n        }\n      ],\n      \"tickets\": [\n        {\n          \"_id\": \"6ae4b7cf68f2d3a27286b047\",\n          \"ticketId\": \"T1\",\n          \"source\": \"ticket\",\n          \"user\": {\n            \"_id\": \"6ae4b7cd68f2d3a27286b022\",\n            \"name\": \"U1\",\n            \"email\": \"u1@x.com\"\n          },\n          \"category\": \"payment\",\n          \"subject\": \"s\",\n          \"platform\": \"web\",\n          \"status\": \"open\",\n          \"priority\": \"high\",\n          \"assignedTo\": null,\n          \"createdAt\": \"2026-10-30T15:29:11.002Z\"\n        }\n      ],\n      \"movies\": [\n        {\n          \"_id\": \"6ae4b7d068f2d3a27286b05d\",\n          \"title\": \"M3\",\n          \"languages\": [\n            \"Tamil\"\n          ],\n          \"image\": \"https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png\",\n          \"accessType\": \"paid\",\n          \"isActive\": false,\n          \"createdAt\": \"2026-10-29T15:29:12.002Z\",\n          \"category\": {\n            \"_id\": \"6ae4b7cf68f2d3a27286b04e\",\n            \"name\": \"Drama\"\n          }\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Movie Stats",
+      "description": "Movie views / plays (popularity). Web and app call `POST /movies/:id/track` (view = page opened, play = video started); `GET /movies/getAll` and `GET /movies/:id/get` return `stats: { views, plays, viewsLabel, playsLabel }` and support `sortBy=views|plays|trending`. Admin gets a leaderboard, a per-movie report and a viewers list (admin only). Repeat window 30 minutes, admin / staff never counted, dates in IST. Watch-time / progress is not tracked.",
+      "item": [
+        {
+          "name": "Track view / play",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text",
+                "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"view\",\n  \"platform\": \"web\",\n  \"deviceId\": \"3f6c1a2e-8a51-4c1e-9d6a-2f0e7b9c1d44\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movies",
+                "{{movieId}}",
+                "track"
+              ]
+            },
+            "description": "Records one **view** (movie page / screen opened) or **play** (video actually started). Call it in the background (fire and forget) from web and app; never block the UI on it.\n\n**Auth:** optional. Send the user token when logged in. A missing / expired / bad token is treated as a guest.\n\n**Body (JSON)**\n\n| Field | Rules |\n| --- | --- |\n| event | **required**. `view` \\| `play` |\n| platform | optional. `web` \\| `android` \\| `ios` (missing shows as `unknown` in admin circles) |\n| deviceId | **required for guests**, optional when logged in (send it anyway). Letters, numbers and `. _ : -`, max 100. Generate once (UUID), store, reuse |\n\n**Counting rules**\n- Same viewer (user, or guest device) + same movie + same event within **30 minutes** → not counted (`reason: \"repeat\"`), even from another platform.\n- Admin / staff token → not counted (`reason: \"staff\"`).\n- `play` on a paid movie the viewer can't watch → not counted (`reason: \"movie_locked\"`). `view` always counts.\n- First view / play of a viewer on the movie also bumps `uniqueViewers` / `uniquePlayers`.\n\n**Response** `data`: `{ counted, reason, stats: { views, plays, viewsLabel, playsLabel } }`. Not counted is still **200**. `reason`: `null` | `repeat` | `staff` | `movie_locked`.\n\n| Status | message |\n| --- | --- |\n| 200 | `Movie event recorded` (counted) / `Movie event not counted` |\n| 404 | `Movie not found` (missing or deleted) |\n| 422 | `deviceId is required for guests` |\n| 422 | `Event is required` / `Event must be one of [view, play]` |\n| 422 | `Platform must be one of [web, android, ios]` |\n| 422 | `Device Id may only contain letters, numbers and . _ : -` / `Device Id length must be less than or equal to 100 characters long` |\n| 422 | `Invalid Movie Id` / `Foo is not allowed` |"
+          },
+          "response": [
+            {
+              "name": "200 Guest view counted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text",
+                    "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                    "disabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"view\",\n  \"platform\": \"web\",\n  \"deviceId\": \"3f6c1a2e-8a51-4c1e-9d6a-2f0e7b9c1d44\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie event recorded\",\n  \"data\": {\n    \"counted\": true,\n    \"reason\": null,\n    \"stats\": {\n      \"views\": 1,\n      \"plays\": 0,\n      \"viewsLabel\": \"1\",\n      \"playsLabel\": \"0\"\n    }\n  }\n}"
+            },
+            {
+              "name": "200 Refresh within 30 min (repeat)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text",
+                    "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                    "disabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"view\",\n  \"platform\": \"web\",\n  \"deviceId\": \"3f6c1a2e-8a51-4c1e-9d6a-2f0e7b9c1d44\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie event not counted\",\n  \"data\": {\n    \"counted\": false,\n    \"reason\": \"repeat\",\n    \"stats\": {\n      \"views\": 1,\n      \"plays\": 0,\n      \"viewsLabel\": \"1\",\n      \"playsLabel\": \"0\"\n    }\n  }\n}"
+            },
+            {
+              "name": "200 Play on locked paid movie",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"play\",\n  \"platform\": \"android\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie event not counted\",\n  \"data\": {\n    \"counted\": false,\n    \"reason\": \"movie_locked\",\n    \"stats\": {\n      \"views\": 0,\n      \"plays\": 0,\n      \"viewsLabel\": \"0\",\n      \"playsLabel\": \"0\"\n    }\n  }\n}"
+            },
+            {
+              "name": "200 Admin / staff not counted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"view\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie event not counted\",\n  \"data\": {\n    \"counted\": false,\n    \"reason\": \"staff\",\n    \"stats\": {\n      \"views\": 2,\n      \"plays\": 1,\n      \"viewsLabel\": \"2\",\n      \"playsLabel\": \"1\"\n    }\n  }\n}"
+            },
+            {
+              "name": "422 Guest without deviceId",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text",
+                    "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                    "disabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"view\",\n  \"platform\": \"web\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"deviceId is required for guests\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 Bad event",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text",
+                    "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                    "disabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"watch\",\n  \"deviceId\": \"d1\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Event must be one of [view, play]\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "404 Movie not found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}",
+                    "type": "text",
+                    "description": "optional: logged-in viewer (guest without it needs deviceId)",
+                    "disabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"view\",\n  \"platform\": \"web\",\n  \"deviceId\": \"3f6c1a2e-8a51-4c1e-9d6a-2f0e7b9c1d44\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/track",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "track"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Movie not found\",\n  \"error\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Movies leaderboard (all movies stats)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movies/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movies",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "last_30_days",
+                  "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-10-01",
+                  "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-10-31",
+                  "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "description": "web | android | ios. Only activity sent from that platform",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "description": "Category ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "accessType",
+                  "value": "paid",
+                  "description": "free (includes old movies) | paid",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "true | false",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "dilwale",
+                  "description": "title contains (max 120)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "plays",
+                  "description": "plays (default) | views | uniqueViewers | uniquePlayers | playRate (range numbers) | totalViews | totalPlays (all-time) | title | createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "desc (default) | asc",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "≥ 1, default 1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "1–100, default 10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Every (not deleted) movie with its views / plays for the date range, ranked. **Admin only** (staff / user get 403). Movies nobody watched in the range are listed with zeros.\n\n**data**\n- `filters`: applied range (`fromDate`, `toDate`, `days`) and filters, `timezone`.\n- `summary`: range totals over all movies the filters keep: `views`, `uniqueViewers`, `plays`, `uniquePlayers`, `playRate`, `moviesWatched` (movies with at least one view / play). Unique counts are across the whole catalog.\n- `total`, `totalPages`, `page`, `limit`, `data`: each movie `{ rank, _id, title, image, accessType, category { _id, name } | null, languages, durationInSeconds, releaseDate, isActive, createdAt, inRange, allTime }`.\n  - `inRange`: `{ views, uniqueViewers, plays, uniquePlayers, playRate }` of the range (+ platform).\n  - `allTime`: same plus `lastViewedAt`, `lastPlayedAt` (not affected by range / platform).\n- `playRate` = plays per 100 views, 1 decimal, 0 when no views. Can pass 100 when people play without opening the page.\n\nEmpty page → **200** with `data: []`.\n\n| Status | message |\n| --- | --- |\n| 200 | `Movie stats fetched successfully` |\n| 401 | `Access Denied! Missing authorization token` |\n| 403 | `Forbidden: You do not have permission to perform this action.` |\n| 422 | `Sort By must be one of [views, uniqueViewers, plays, uniquePlayers, playRate, totalViews, totalPlays, title, createdAt]` |\n| 422 | `Limit must be less than or equal to 100` |\n| 422 | `Invalid Category Id format` / `Access Type must be one of [free, paid]` |\n| 422 | `fromDate and toDate can only be used with range=custom` |\n| 422 | `fromDate is required when range is custom` / `toDate cannot be before fromDate` |\n| 422 | `From Date is not a valid date` / `From Date must be a date in YYYY-MM-DD format` |\n| 422 | `Platform must be one of [web, android, ios]` |"
+          },
+          "response": [
+            {
+              "name": "200 Last 30 days, by plays",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Category ObjectId",
+                      "disabled": true
+                    },
+                    {
+                      "key": "accessType",
+                      "value": "paid",
+                      "description": "free (includes old movies) | paid",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true | false",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "dilwale",
+                      "description": "title contains (max 120)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "plays",
+                      "description": "plays (default) | views | uniqueViewers | uniquePlayers | playRate (range numbers) | totalViews | totalPlays (all-time) | title | createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "desc (default) | asc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "≥ 1, default 1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "1–100, default 10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie stats fetched successfully\",\n  \"data\": {\n    \"filters\": {\n      \"range\": \"last_30_days\",\n      \"fromDate\": \"2026-10-05\",\n      \"toDate\": \"2026-11-03\",\n      \"days\": 30,\n      \"platform\": null,\n      \"categoryId\": null,\n      \"accessType\": null,\n      \"isActive\": null,\n      \"search\": null,\n      \"sortBy\": \"plays\",\n      \"sortOrder\": \"desc\",\n      \"timezone\": \"Asia/Kolkata\"\n    },\n    \"summary\": {\n      \"views\": 206,\n      \"uniqueViewers\": 7,\n      \"plays\": 159,\n      \"uniquePlayers\": 11,\n      \"playRate\": 77.2,\n      \"moviesWatched\": 4\n    },\n    \"total\": 4,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n      {\n        \"rank\": 1,\n        \"_id\": \"6ae9c890cfb2e42d54d3fb56\",\n        \"title\": \"Free Movie\",\n        \"languages\": [\n          \"Hindi\"\n        ],\n        \"image\": \"https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png\",\n        \"accessType\": \"free\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-11-03T11:42:08.690Z\",\n        \"category\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb4e\",\n          \"name\": \"Drama\"\n        },\n        \"inRange\": {\n          \"views\": 104,\n          \"uniqueViewers\": 4,\n          \"plays\": 101,\n          \"uniquePlayers\": 2,\n          \"playRate\": 97.1\n        },\n        \"allTime\": {\n          \"views\": 4,\n          \"uniqueViewers\": 3,\n          \"plays\": 1,\n          \"uniquePlayers\": 1,\n          \"playRate\": 25,\n          \"lastViewedAt\": \"2026-11-03T11:42:12.939Z\",\n          \"lastPlayedAt\": \"2026-11-03T11:42:11.269Z\"\n        }\n      },\n      {\n        \"rank\": 2,\n        \"_id\": \"6ae9c891cfb2e42d54d3fb5e\",\n        \"title\": \"Old Movie\",\n        \"languages\": [\n          \"Tamil\"\n        ],\n        \"image\": \"x\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-07-26T11:42:09.055Z\",\n        \"accessType\": \"free\",\n        \"category\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb4f\",\n          \"name\": \"Action\"\n        },\n        \"inRange\": {\n          \"views\": 60,\n          \"uniqueViewers\": 1,\n          \"plays\": 51,\n          \"uniquePlayers\": 2,\n          \"playRate\": 85\n        },\n        \"allTime\": {\n          \"views\": 0,\n          \"uniqueViewers\": 0,\n          \"plays\": 1,\n          \"uniquePlayers\": 1,\n          \"playRate\": 0,\n          \"lastViewedAt\": null,\n          \"lastPlayedAt\": \"2026-11-03T11:42:15.412Z\"\n        }\n      },\n      {\n        \"rank\": 3,\n        \"_id\": \"6ae9c890cfb2e42d54d3fb5c\",\n        \"title\": \"Extra Movie\",\n        \"languages\": [\n          \"Hindi\"\n        ],\n        \"image\": \"https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png\",\n        \"accessType\": \"free\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-11-03T11:42:08.973Z\",\n        \"category\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb4e\",\n          \"name\": \"Drama\"\n        },\n        \"inRange\": {\n          \"views\": 1,\n          \"uniqueViewers\": 1,\n          \"plays\": 6,\n          \"uniquePlayers\": 6,\n          \"playRate\": 600\n        },\n        \"allTime\": {\n          \"views\": 1520,\n          \"uniqueViewers\": 1,\n          \"plays\": 2300000,\n          \"uniquePlayers\": 6,\n          \"playRate\": 151315.8,\n          \"lastViewedAt\": \"2026-11-03T11:42:15.878Z\",\n          \"lastPlayedAt\": \"2026-11-03T11:42:16.780Z\"\n        }\n      },\n      {\n        \"rank\": 4,\n        \"_id\": \"6ae9c890cfb2e42d54d3fb58\",\n        \"title\": \"Paid Movie\",\n        \"languages\": [\n          \"Hindi\"\n        ],\n        \"image\": \"https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png\",\n        \"accessType\": \"paid\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-11-03T11:42:08.784Z\",\n        \"category\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb4f\",\n          \"name\": \"Action\"\n        },\n        \"inRange\": {\n          \"views\": 41,\n          \"uniqueViewers\": 2,\n          \"plays\": 1,\n          \"uniquePlayers\": 1,\n          \"playRate\": 2.4\n        },\n        \"allTime\": {\n          \"views\": 1,\n          \"uniqueViewers\": 1,\n          \"plays\": 1,\n          \"uniquePlayers\": 1,\n          \"playRate\": 100,\n          \"lastViewedAt\": \"2026-11-03T11:42:14.210Z\",\n          \"lastPlayedAt\": \"2026-11-03T11:42:14.841Z\"\n        }\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 No token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Category ObjectId",
+                      "disabled": true
+                    },
+                    {
+                      "key": "accessType",
+                      "value": "paid",
+                      "description": "free (includes old movies) | paid",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true | false",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "dilwale",
+                      "description": "title contains (max 120)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "plays",
+                      "description": "plays (default) | views | uniqueViewers | uniquePlayers | playRate (range numbers) | totalViews | totalPlays (all-time) | title | createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "desc (default) | asc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "≥ 1, default 1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "1–100, default 10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Access Denied! Missing authorization token\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "403 Staff / user token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{staffToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Category ObjectId",
+                      "disabled": true
+                    },
+                    {
+                      "key": "accessType",
+                      "value": "paid",
+                      "description": "free (includes old movies) | paid",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true | false",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "dilwale",
+                      "description": "title contains (max 120)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "plays",
+                      "description": "plays (default) | views | uniqueViewers | uniquePlayers | playRate (range numbers) | totalViews | totalPlays (all-time) | title | createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "desc (default) | asc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "≥ 1, default 1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "1–100, default 10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden: You do not have permission to perform this action.\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 Bad sortBy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/stats?sortBy=bogus",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "sortBy",
+                      "value": "bogus"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Sort By must be one of [views, uniqueViewers, plays, uniquePlayers, playRate, totalViews, totalPlays, title, createdAt]\",\n  \"error\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Movie stats report (one movie)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movies",
+                "{{movieId}}",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "last_30_days",
+                  "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-10-01",
+                  "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-10-31",
+                  "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "description": "web | android | ios. Only activity sent from that platform",
+                  "disabled": true
+                },
+                {
+                  "key": "groupBy",
+                  "value": "day",
+                  "description": "day | week | month. Chart bucket. Default auto: ≤31 days day, ≤180 week, else month. day allows max 366 days",
+                  "disabled": true
+                },
+                {
+                  "key": "compare",
+                  "value": "true",
+                  "description": "true (default) | false. Previous-period comparison on overview. Always off for all_time",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Full report of one movie. **Admin only.**\n\n**data**\n- `movie`: `{ _id, title, image, accessType, category, languages, durationInSeconds, releaseDate, isActive, createdAt }`.\n- `filters`: range, `days`, `groupBy`, `platform`, `compare`, `previousFromDate`, `previousToDate`, `timezone`.\n- `allTime`: `{ views, uniqueViewers, plays, uniquePlayers, playRate, lastViewedAt, lastPlayedAt }` (not affected by filters).\n- `overview`: KPI cards `views`, `uniqueViewers`, `plays`, `uniquePlayers`, `playRate`, each `{ value, previous, changePercent }` (previous null without comparison, changePercent null when previous is 0).\n- `charts`: `{ groupBy, points: [{ date, label, views, plays, uniqueViewers, uniquePlayers }] }`, every bucket present (zeros filled), unique counts per bucket.\n- `circles` (`{ total, items: [{ key, label, count, percent }] }`): `viewsByPlatform`, `playsByPlatform` (web, android, ios + `unknown` when platform was not sent), `viewersByType`, `playersByType` (guest, user, subscriber; each viewer once, by their latest type in the range).\n\n| Status | message |\n| --- | --- |\n| 200 | `Movie stats fetched successfully` |\n| 401 / 403 | as above (staff / user get 403) |\n| 404 | `Movie not found` (missing or deleted) |\n| 422 | `Invalid Movie Id` |\n| 422 | `groupBy=day allows at most 366 days, use week or month` / `Group By must be one of [day, week, month]` |\n| 422 | `Compare must be a boolean` |\n| 422 | `fromDate and toDate can only be used with range=custom` |\n| 422 | `fromDate is required when range is custom` / `toDate cannot be before fromDate` |\n| 422 | `From Date is not a valid date` / `From Date must be a date in YYYY-MM-DD format` |\n| 422 | `Platform must be one of [web, android, ios]` |"
+          },
+          "response": [
+            {
+              "name": "200 Last 30 days (compared with previous 30)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "groupBy",
+                      "value": "day",
+                      "description": "day | week | month. Chart bucket. Default auto: ≤31 days day, ≤180 week, else month. day allows max 366 days",
+                      "disabled": true
+                    },
+                    {
+                      "key": "compare",
+                      "value": "true",
+                      "description": "true (default) | false. Previous-period comparison on overview. Always off for all_time",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie stats fetched successfully\",\n  \"data\": {\n    \"movie\": {\n      \"_id\": \"6ae9c890cfb2e42d54d3fb56\",\n      \"title\": \"Free Movie\",\n      \"languages\": [\n        \"Hindi\"\n      ],\n      \"image\": \"https://cdn.prod.website-files.com/619cb1d12095e3f3cdddaeb2/68483b208c04ea886b01c757_Best%20OTT%20Platforms%20for%20Movie%20Buffs.png\",\n      \"accessType\": \"free\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-03T11:42:08.690Z\",\n      \"category\": {\n        \"_id\": \"6ae9c890cfb2e42d54d3fb4e\",\n        \"name\": \"Drama\"\n      }\n    },\n    \"filters\": {\n      \"range\": \"last_30_days\",\n      \"fromDate\": \"2026-10-05\",\n      \"toDate\": \"2026-11-03\",\n      \"days\": 30,\n      \"groupBy\": \"day\",\n      \"platform\": null,\n      \"compare\": true,\n      \"previousFromDate\": \"2026-09-05\",\n      \"previousToDate\": \"2026-10-04\",\n      \"timezone\": \"Asia/Kolkata\"\n    },\n    \"allTime\": {\n      \"views\": 4,\n      \"uniqueViewers\": 3,\n      \"plays\": 1,\n      \"uniquePlayers\": 1,\n      \"playRate\": 25,\n      \"lastViewedAt\": \"2026-11-03T11:42:12.939Z\",\n      \"lastPlayedAt\": \"2026-11-03T11:42:11.269Z\"\n    },\n    \"overview\": {\n      \"views\": {\n        \"value\": 104,\n        \"previous\": 52,\n        \"changePercent\": 100\n      },\n      \"uniqueViewers\": {\n        \"value\": 4,\n        \"previous\": 1,\n        \"changePercent\": 300\n      },\n      \"plays\": {\n        \"value\": 101,\n        \"previous\": 10,\n        \"changePercent\": 910\n      },\n      \"uniquePlayers\": {\n        \"value\": 2,\n        \"previous\": 1,\n        \"changePercent\": 100\n      },\n      \"playRate\": {\n        \"value\": 97.1,\n        \"previous\": 19.2,\n        \"changePercent\": 405.7\n      }\n    },\n    \"charts\": {\n      \"groupBy\": \"day\",\n      \"points\": [\n        {\n          \"date\": \"2026-10-05\",\n          \"label\": \"5 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-06\",\n          \"label\": \"6 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-07\",\n          \"label\": \"7 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-08\",\n          \"label\": \"8 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-09\",\n          \"label\": \"9 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-10\",\n          \"label\": \"10 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-11\",\n          \"label\": \"11 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-12\",\n          \"label\": \"12 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-13\",\n          \"label\": \"13 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-14\",\n          \"label\": \"14 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-15\",\n          \"label\": \"15 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-16\",\n          \"label\": \"16 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-17\",\n          \"label\": \"17 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-18\",\n          \"label\": \"18 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-19\",\n          \"label\": \"19 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-20\",\n          \"label\": \"20 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-21\",\n          \"label\": \"21 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-22\",\n          \"label\": \"22 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-23\",\n          \"label\": \"23 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-24\",\n          \"label\": \"24 Oct\",\n          \"views\": 100,\n          \"plays\": 100,\n          \"uniqueViewers\": 1,\n          \"uniquePlayers\": 1\n        },\n        {\n          \"date\": \"2026-10-25\",\n          \"label\": \"25 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-26\",\n          \"label\": \"26 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-27\",\n          \"label\": \"27 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-28\",\n          \"label\": \"28 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-29\",\n          \"label\": \"29 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-30\",\n          \"label\": \"30 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-10-31\",\n          \"label\": \"31 Oct\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-11-01\",\n          \"label\": \"1 Nov\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-11-02\",\n          \"label\": \"2 Nov\",\n          \"views\": 0,\n          \"plays\": 0,\n          \"uniqueViewers\": 0,\n          \"uniquePlayers\": 0\n        },\n        {\n          \"date\": \"2026-11-03\",\n          \"label\": \"3 Nov\",\n          \"views\": 4,\n          \"plays\": 1,\n          \"uniqueViewers\": 3,\n          \"uniquePlayers\": 1\n        }\n      ]\n    },\n    \"circles\": {\n      \"viewsByPlatform\": {\n        \"total\": 104,\n        \"items\": [\n          {\n            \"key\": \"web\",\n            \"label\": \"Web\",\n            \"count\": 102,\n            \"percent\": 98.1\n          },\n          {\n            \"key\": \"android\",\n            \"label\": \"Android\",\n            \"count\": 1,\n            \"percent\": 1\n          },\n          {\n            \"key\": \"ios\",\n            \"label\": \"iOS\",\n            \"count\": 1,\n            \"percent\": 1\n          }\n        ]\n      },\n      \"playsByPlatform\": {\n        \"total\": 101,\n        \"items\": [\n          {\n            \"key\": \"web\",\n            \"label\": \"Web\",\n            \"count\": 101,\n            \"percent\": 100\n          },\n          {\n            \"key\": \"android\",\n            \"label\": \"Android\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"ios\",\n            \"label\": \"iOS\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      },\n      \"viewersByType\": {\n        \"total\": 4,\n        \"items\": [\n          {\n            \"key\": \"guest\",\n            \"label\": \"Guest\",\n            \"count\": 2,\n            \"percent\": 50\n          },\n          {\n            \"key\": \"user\",\n            \"label\": \"User\",\n            \"count\": 1,\n            \"percent\": 25\n          },\n          {\n            \"key\": \"subscriber\",\n            \"label\": \"Subscriber\",\n            \"count\": 1,\n            \"percent\": 25\n          }\n        ]\n      },\n      \"playersByType\": {\n        \"total\": 2,\n        \"items\": [\n          {\n            \"key\": \"guest\",\n            \"label\": \"Guest\",\n            \"count\": 2,\n            \"percent\": 100\n          },\n          {\n            \"key\": \"user\",\n            \"label\": \"User\",\n            \"count\": 0,\n            \"percent\": 0\n          },\n          {\n            \"key\": \"subscriber\",\n            \"label\": \"Subscriber\",\n            \"count\": 0,\n            \"percent\": 0\n          }\n        ]\n      }\n    }\n  }\n}"
+            },
+            {
+              "name": "404 Movie not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "groupBy",
+                      "value": "day",
+                      "description": "day | week | month. Chart bucket. Default auto: ≤31 days day, ≤180 week, else month. day allows max 366 days",
+                      "disabled": true
+                    },
+                    {
+                      "key": "compare",
+                      "value": "true",
+                      "description": "true (default) | false. Previous-period comparison on overview. Always off for all_time",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Movie not found\",\n  \"error\": {}\n}"
+            },
+            {
+              "name": "422 groupBy=day over a year",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/stats?range=custom&fromDate=2024-01-01&groupBy=day",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "stats"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "custom"
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2024-01-01"
+                    },
+                    {
+                      "key": "groupBy",
+                      "value": "day"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"groupBy=day allows at most 366 days, use week or month\",\n  \"error\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Movie viewers (who watched)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/viewers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movies",
+                "{{movieId}}",
+                "viewers"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "last_30_days",
+                  "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-10-01",
+                  "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-10-31",
+                  "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                  "disabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "description": "web | android | ios. Only activity sent from that platform",
+                  "disabled": true
+                },
+                {
+                  "key": "viewerType",
+                  "value": "subscriber",
+                  "description": "guest | user | subscriber",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "lastActiveAt",
+                  "description": "lastActiveAt (default) | views | plays",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "desc (default) | asc",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "≥ 1, default 1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "1–100, default 10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Who opened / played one movie in the range: one row per viewer (a user, or a guest device). **Admin only.**\n\n**data**: `movie { _id, title }`, `filters`, `total`, `totalPages`, `page`, `limit`, `data`: each `{ user { _id, name, email, mobile, image } | null, deviceId (guests only, else null), viewerType, views, plays, platforms (sorted, unknown when not sent), lastViewedAt, lastPlayedAt, lastActiveAt }`. `viewerType` is the viewer's latest type in the range. Empty list → **200**.\n\n| Status | message |\n| --- | --- |\n| 200 | `Movie viewers fetched successfully` |\n| 401 / 403 | as above |\n| 404 | `Movie not found` |\n| 422 | `Invalid Movie Id` |\n| 422 | `Viewer Type must be one of [guest, user, subscriber]` |\n| 422 | `Sort By must be one of [lastActiveAt, views, plays]` / `Limit must be less than or equal to 100` |\n| 422 | `fromDate and toDate can only be used with range=custom` |\n| 422 | `fromDate is required when range is custom` / `toDate cannot be before fromDate` |\n| 422 | `From Date is not a valid date` / `From Date must be a date in YYYY-MM-DD format` |\n| 422 | `Platform must be one of [web, android, ios]` |"
+          },
+          "response": [
+            {
+              "name": "200 Last 30 days",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/viewers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "viewers"
+                  ],
+                  "query": [
+                    {
+                      "key": "range",
+                      "value": "last_30_days",
+                      "description": "today | yesterday | last_7_days | last_30_days (default) | last_90_days | this_month | last_month | this_year | all_time | custom. IST calendar days. all_time starts at the first tracked activity",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-10-01",
+                      "description": "YYYY-MM-DD (IST). Only with range=custom; sending it without range means custom",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-10-31",
+                      "description": "YYYY-MM-DD (IST), whole day included. Default today. Not before fromDate",
+                      "disabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "description": "web | android | ios. Only activity sent from that platform",
+                      "disabled": true
+                    },
+                    {
+                      "key": "viewerType",
+                      "value": "subscriber",
+                      "description": "guest | user | subscriber",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "lastActiveAt",
+                      "description": "lastActiveAt (default) | views | plays",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "desc (default) | asc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "≥ 1, default 1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "1–100, default 10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Movie viewers fetched successfully\",\n  \"data\": {\n    \"movie\": {\n      \"_id\": \"6ae9c890cfb2e42d54d3fb56\",\n      \"title\": \"Free Movie\"\n    },\n    \"filters\": {\n      \"range\": \"last_30_days\",\n      \"fromDate\": \"2026-10-05\",\n      \"toDate\": \"2026-11-03\",\n      \"platform\": null,\n      \"viewerType\": null,\n      \"sortBy\": \"lastActiveAt\",\n      \"sortOrder\": \"desc\",\n      \"timezone\": \"Asia/Kolkata\"\n    },\n    \"total\": 4,\n    \"totalPages\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"data\": [\n      {\n        \"user\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb47\",\n          \"name\": \"subscriber\",\n          \"email\": \"subscriber@e2e.test\"\n        },\n        \"deviceId\": null,\n        \"viewerType\": \"subscriber\",\n        \"views\": 1,\n        \"plays\": 0,\n        \"lastViewedAt\": \"2026-11-03T11:42:12.939Z\",\n        \"lastPlayedAt\": null,\n        \"lastActiveAt\": \"2026-11-03T11:42:12.939Z\",\n        \"platforms\": [\n          \"ios\"\n        ]\n      },\n      {\n        \"user\": {\n          \"_id\": \"6ae9c890cfb2e42d54d3fb46\",\n          \"name\": \"user\",\n          \"email\": \"user@e2e.test\"\n        },\n        \"deviceId\": null,\n        \"viewerType\": \"user\",\n        \"views\": 1,\n        \"plays\": 0,\n        \"lastViewedAt\": \"2026-11-03T11:42:12.319Z\",\n        \"lastPlayedAt\": null,\n        \"lastActiveAt\": \"2026-11-03T11:42:12.319Z\",\n        \"platforms\": [\n          \"android\"\n        ]\n      },\n      {\n        \"user\": null,\n        \"deviceId\": \"guest-1\",\n        \"viewerType\": \"guest\",\n        \"views\": 2,\n        \"plays\": 1,\n        \"lastViewedAt\": \"2026-11-03T11:42:10.808Z\",\n        \"lastPlayedAt\": \"2026-11-03T11:42:11.269Z\",\n        \"lastActiveAt\": \"2026-11-03T11:42:11.269Z\",\n        \"platforms\": [\n          \"web\"\n        ]\n      },\n      {\n        \"user\": null,\n        \"deviceId\": \"t2\",\n        \"viewerType\": \"guest\",\n        \"views\": 100,\n        \"plays\": 100,\n        \"lastViewedAt\": null,\n        \"lastPlayedAt\": null,\n        \"lastActiveAt\": null,\n        \"platforms\": [\n          \"web\"\n        ]\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "422 Bad viewerType",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/movies/{{movieId}}/viewers?viewerType=vip",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{movieId}}",
+                    "viewers"
+                  ],
+                  "query": [
+                    {
+                      "key": "viewerType",
+                      "value": "vip"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Viewer Type must be one of [guest, user, subscriber]\",\n  \"error\": {}\n}"
             }
           ]
         }

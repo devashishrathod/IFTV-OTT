@@ -1,8 +1,8 @@
 # IFTV Admin Panel: API doc
 
-Last update: 2026-10-30 · Index: [README.md](README.md)
+Last update: 2026-11-03 · Index: [README.md](README.md)
 
-Ye doc admin panel team ke liye hai. Isme 8 features hain:
+Ye doc admin panel team ke liye hai. Isme 9 features hain:
 
 1. [Auth: admin / staff login](#1-auth-admin--staff-login)
 2. [Support inbox](#2-support-inbox) (tickets + Contact Us messages)
@@ -12,6 +12,7 @@ Ye doc admin panel team ke liye hai. Isme 8 features hain:
 6. [Movies: free / paid](#6-movies-free--paid)
 7. [Users list](#7-users-list) (filters + har user ka current plan)
 8. [Dashboard](#8-dashboard) (home page: KPI cards, charts, circles, recent lists, filters)
+9. [Movie stats (views / plays)](#9-movie-stats-views--plays) (popularity ranking, ek movie ki report, viewers)
 
 ---
 
@@ -1410,12 +1411,14 @@ Admin panel ka home page **ek hi call** mein: KPI cards (pichhle period se % cha
 
 **Kaunsa filter kahan lagta hai:**
 
-| Filter | Users | Payments / revenue | Subscriptions | Support | Content | Recent lists |
-| --- | :---: | :---: | :---: | :---: | :---: | :---: |
-| Date range | ✅ signups | ✅ | ✅ (naye / expire hue) | ✅ (naye tickets) | ❌ | ❌ |
-| platform | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ jahan field hai |
-| planId | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ payments / subscriptions |
-| categoryId | ❌ | ❌ | ❌ | ❌ | ✅ movies | ✅ movies |
+| Filter | Users | Payments / revenue | Subscriptions | Support | Content | Movie views / plays | Recent lists |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Date range | ✅ signups | ✅ | ✅ (naye / expire hue) | ✅ (naye tickets) | ❌ | ✅ | ❌ |
+| platform | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ jahan field hai |
+| planId | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ payments / subscriptions |
+| categoryId | ❌ | ❌ | ❌ | ❌ | ✅ movies | ✅ | ✅ movies |
+
+"Movie views / plays" = `overview.movieViews` / `moviePlays`, chart ki `movieViews` / `moviePlays` series aur `content.topMovies`.
 
 **Rule yaad rakho:**
 - **Flow** wala data date range ke hisaab se badalta hai: signups, payments / revenue, naye subscriptions, naye tickets.
@@ -1480,18 +1483,22 @@ Test data ka asli response hai. Har list aur circle ka sirf ek hissa dikhaya hai
       "totalUsers": 5,
       "activeSubscribers": 3,
       "openTickets": 2,
-      "totalMovies": 4
+      "totalMovies": 4,
+      "movieViews": { "value": 206, "previous": 52, "changePercent": 296.2 },
+      "moviePlays": { "value": 159, "previous": 10, "changePercent": 1490 }
     },
     "charts": {
       "groupBy": "day",
       "points": [
         {
           "date": "2026-10-29", "label": "29 Oct",
+          "movieViews": 0, "moviePlays": 0,
           "signups": 0, "revenue": 0, "paidPayments": 0, "failedPayments": 0,
           "newSubscriptions": 1, "expiredSubscriptions": 0, "tickets": 0, "resolvedTickets": 0
         },
         {
           "date": "2026-10-30", "label": "30 Oct",
+          "movieViews": 6, "moviePlays": 9,
           "signups": 1, "revenue": 19900, "paidPayments": 1, "failedPayments": 0,
           "newSubscriptions": 0, "expiredSubscriptions": 0, "tickets": 1, "resolvedTickets": 0
         }
@@ -1547,7 +1554,14 @@ Test data ka asli response hai. Har list aur circle ka sirf ek hissa dikhaya hai
       "subCategories": { "total": 1, "active": 1 },
       "banners": { "total": 2, "active": 1 },
       "gallery": { "total": 3, "active": 2, "image": 1, "gif": 1, "video": 1 },
-      "plans": { "total": 3, "active": 2 }
+      "plans": { "total": 3, "active": 2 },
+      "topMovies": [
+        {
+          "rank": 1, "_id": "6ae9c890cfb2e42d54d3fb56", "title": "Free Movie", "image": "https://...",
+          "accessType": "free", "isActive": true,
+          "views": 104, "uniqueViewers": 4, "plays": 101, "uniquePlayers": 2, "playRate": 97.1
+        }
+      ]
     },
     "support": {
       "totalInRange": 3, "open": 1, "inProgress": 1, "unassignedOpen": 1,
@@ -1624,6 +1638,7 @@ Test data ka asli response hai. Har list aur circle ka sirf ek hissa dikhaya hai
 | activeSubscribers | Abhi plan wale unique users |
 | openTickets | `open` + `in_progress` tickets (abhi) |
 | totalMovies | Delete na hui movies (abhi) |
+| movieViews, moviePlays | `{ value, previous, changePercent }`. Range mein movie pages kitni baar khule / videos kitni baar chale (section 9). `platform` aur `categoryId` filter lagte hain |
 
 Card UI: bada number `value`. Neeche `changePercent` likho: positive ho to green ▲, negative ho to red ▼. Revenue ko `/ 100` karke dikhao.
 
@@ -1641,6 +1656,7 @@ Card UI: bada number `value`. Neeche `changePercent` likho: positive ho to green
 | newSubscriptions | Naye subscription periods (purchase, renewal, upgrade, admin grant) |
 | expiredSubscriptions | Jo plan apni endDate par khatam hue (upgrade / cancel wale nahi) |
 | tickets / resolvedTickets | Naye tickets / resolve ya close hue tickets |
+| movieViews / moviePlays | Movie views / plays (section 9) |
 
 Chart suggestions:
 - Revenue: area chart
@@ -1689,7 +1705,7 @@ Jo circle date range par chalta hai, wo filter badalne par badalta hai. "abhi" w
 | users | `total`, `active`, `inactive`, `emailVerified`, `mobileVerified`, `signUpCompleted`, `onlineNow` (abhi) · `newInRange` (range) · `subscribed` (abhi plan wale) · `neverSubscribed` (kabhi plan nahi liya) |
 | subscriptions | `activeSubscribers`, `scheduled` (aage shuru hone wale), `expiringIn7Days` (7 din mein khatam, aage koi plan queue mein nahi) · `newInRange`, `expiredInRange`, `cancelledInRange`, `adminGrantsInRange` (range) · `upgradeAllowed` (setting) |
 | revenue | `today`, `thisMonth` (IST), `range`, `allTime`: har ek `{ amount (paise), count }`. `averageOrderValue` (paise) · `successRatePercent` = paid / (paid + failed + expired). Pending orders isme nahi gine jaate, aur data na ho to `null` · `creditAppliedInRange` (upgrade credit, paise). `platform` / `planId` filter yahan bhi lagta hai |
-| content | movies (`total`, `active`, `inactive`, `free`, `paid`, `withoutVideo`), categories / subCategories / banners / plans (`total`, `active`), gallery (`total`, `active`, `image`, `gif`, `video`) |
+| content | movies (`total`, `active`, `inactive`, `free`, `paid`, `withoutVideo`), categories / subCategories / banners / plans (`total`, `active`), gallery (`total`, `active`, `image`, `gif`, `video`) · `topMovies`: range mein sabse zyada play hui **top 5** movies (`rank`, `_id`, `title`, `image`, `accessType`, `isActive`, `views`, `uniqueViewers`, `plays`, `uniquePlayers`, `playRate`). Baaki content "abhi" ka hai, par `topMovies` date range follow karta hai. Click par `GET /movies/:id/stats` (9.3) |
 | support | `totalInRange` (range) · `open`, `inProgress`, `unassignedOpen`, `highPriorityOpen` (abhi) · `avgResolutionHours`: range ke tickets resolve / close hone mein average kitne ghante lage. Koi resolve nahi hua to `null` |
 
 **`recent`: lists** (har list mein `recentLimit` tak items, naya pehle)
@@ -1743,9 +1759,326 @@ Data na ho tab bhi **200** aata hai, zero aur khali arrays ke saath (404 kabhi n
 
 ---
 
+## 9. Movie stats (views / plays)
+
+Website aur app har movie par `POST /movies/:id/track` bhejte hain: page khula to `view`, video start hua to `play`. Unhi se ye numbers bante hain. Admin panel ke liye 3 APIs hain, teeno **sirf admin** (staff aur user token par 403).
+
+| Screen | API |
+| --- | --- |
+| Saari movies ki ranking (popularity) | `GET /movies/stats` (9.2) |
+| Ek movie ki report | `GET /movies/:id/stats` (9.3) |
+| Kis user ne dekhi | `GET /movies/:id/viewers` (9.4) |
+
+### Kya gina jaata hai
+
+| Number | Matlab |
+| --- | --- |
+| views | Movie ka page / screen kitni baar khula |
+| uniqueViewers | Kitne alag log (login user, ya guest ka device) ne page khola |
+| plays | Video kitni baar start hua |
+| uniquePlayers | Kitne alag logon ne play kiya |
+| playRate | 100 views par kitne plays (`plays / views × 100`, 1 decimal). Log page khol ke play karte hain ya nahi, ye batata hai. Koi seedha play kare (page skip karke) to 100 se upar bhi ja sakta hai. Views 0 ho to 0 |
+
+**Counting ke rules:**
+- Same viewer 30 minute ke andar wahi event dobara bheje (refresh) to dobara nahi gina jaata. Platform badalne par bhi nahi.
+- Admin / staff ki activity nahi gini jaati, isliye admin panel se movie kholne par count nahi badhta.
+- Paid movie ka `play` sirf tab gina jaata hai jab user ke paas plan ho.
+- Viewer type: `guest` (bina login), `user` (login, plan nahi), `subscriber` (login + chalta plan), us din ke hisaab se.
+- Ek guest baad mein login kare to wo naya viewer gina jaata hai (device aur user alag hain).
+- Delete hui movies kisi list / total mein nahi aatin.
+- Ye tracking **2026-11-03** se shuru hui hai. Purani movies ke numbers 0 se shuru hain.
+
+### 9.1 Movie list / detail mein stats
+
+`GET /movies/getAll` aur `GET /movies/:id/get` mein har movie ke saath ab chhota `stats` aata hai (website / app bhi yahi dikhate hain):
+
+```json
+"stats": { "views": 1520, "plays": 830, "viewsLabel": "1.5K", "playsLabel": "830" }
+```
+
+Movies list table mein Views / Plays column ke liye ye kaafi hai. Poore numbers ke liye neeche wali APIs use karo. `getAll` mein `sortBy=views`, `sortBy=plays` aur `sortBy=trending` (pichhle 7 din ke plays) bhi chalte hain.
+
+> Movie create / update se `stats` set nahi ho sakta (`422 Stats is not allowed`).
+
+### Date filters (9.2, 9.3, 9.4 teeno mein)
+
+Dashboard (section 8) jaise hi:
+
+| Query | Rules |
+| --- | --- |
+| range | `today`, `yesterday`, `last_7_days`, `last_30_days` (default), `last_90_days`, `this_month`, `last_month`, `this_year`, `all_time`, `custom` |
+| fromDate / toDate | `YYYY-MM-DD` (IST), sirf `range=custom` ke saath. `range` na bhejo aur dates bhejo to `custom` maana jayega. `toDate` default aaj |
+| platform | `web`, `android`, `ios`. Sirf us platform ki activity |
+
+`all_time` pehli tracked activity se aaj tak hota hai.
+
+### 9.2 Saari movies ki ranking
+
+`GET /movies/stats` · Auth: sirf admin
+
+| Query | Rules |
+| --- | --- |
+| range, fromDate, toDate, platform | upar wali table |
+| categoryId | category ka `_id` |
+| accessType | `free` / `paid` |
+| isActive | `true` / `false` |
+| search | title mein dhundo (max 120) |
+| sortBy | `plays` (default), `views`, `uniqueViewers`, `uniquePlayers`, `playRate` (range ke numbers) · `totalViews`, `totalPlays` (all-time) · `title`, `createdAt` |
+| sortOrder | `desc` (default) / `asc` |
+| page / limit | default 1 / 10, limit max 100 |
+
+Jo movie range mein kisi ne nahi dekhi, wo bhi list mein 0 ke saath aati hai.
+
+```
+GET /movies/stats
+GET /movies/stats?range=last_7_days&sortBy=views
+GET /movies/stats?range=custom&fromDate=2026-10-01&toDate=2026-10-31&categoryId=6ae4b7cf68f2d3a27286b04d&accessType=paid
+```
+
+**Success 200** (test data ka asli response, list chhoti ki hai):
+
+```json
+{
+  "success": true,
+  "message": "Movie stats fetched successfully",
+  "data": {
+    "filters": {
+      "range": "last_30_days", "fromDate": "2026-10-05", "toDate": "2026-11-03", "days": 30,
+      "platform": null, "categoryId": null, "accessType": null, "isActive": null, "search": null,
+      "sortBy": "plays", "sortOrder": "desc", "timezone": "Asia/Kolkata"
+    },
+    "summary": {
+      "views": 206, "uniqueViewers": 7, "plays": 159, "uniquePlayers": 11,
+      "playRate": 77.2, "moviesWatched": 4
+    },
+    "total": 4,
+    "totalPages": 1,
+    "page": 1,
+    "limit": 10,
+    "data": [
+      {
+        "rank": 1,
+        "_id": "6ae9c890cfb2e42d54d3fb56",
+        "title": "Free Movie",
+        "languages": ["Hindi"],
+        "image": "https://...",
+        "accessType": "free",
+        "isActive": true,
+        "createdAt": "2026-11-03T11:42:08.690Z",
+        "category": { "_id": "6ae9c890cfb2e42d54d3fb4e", "name": "Drama" },
+        "inRange": { "views": 104, "uniqueViewers": 4, "plays": 101, "uniquePlayers": 2, "playRate": 97.1 },
+        "allTime": {
+          "views": 4, "uniqueViewers": 3, "plays": 1, "uniquePlayers": 1, "playRate": 25,
+          "lastViewedAt": "2026-11-03T11:42:12.939Z", "lastPlayedAt": "2026-11-03T11:42:11.269Z"
+        }
+      },
+      {
+        "rank": 2,
+        "_id": "6ae9c890cfb2e42d54d3fb58",
+        "title": "Paid Movie",
+        "languages": ["Hindi"],
+        "image": "https://...",
+        "accessType": "paid",
+        "isActive": true,
+        "createdAt": "2026-11-03T11:42:08.784Z",
+        "category": { "_id": "6ae9c890cfb2e42d54d3fb4f", "name": "Action" },
+        "inRange": { "views": 41, "uniqueViewers": 2, "plays": 1, "uniquePlayers": 1, "playRate": 2.4 },
+        "allTime": {
+          "views": 1, "uniqueViewers": 1, "plays": 1, "uniquePlayers": 1, "playRate": 100,
+          "lastViewedAt": "2026-11-03T11:42:14.210Z", "lastPlayedAt": "2026-11-03T11:42:14.841Z"
+        }
+      }
+    ]
+  }
+}
+```
+
+| Block | Kya hai |
+| --- | --- |
+| summary | Filters wali saari movies ka range total. `moviesWatched` = kitni movies ko range mein kam se kam ek view / play mila. Unique numbers poore catalog par hain (ek user 3 movies dekhe to 1 gina jaata hai) |
+| rank | List mein position, page 2 par aage se continue (11, 12, ...) |
+| inRange | Range (aur platform) ke numbers |
+| allTime | Ab tak ke total, range / platform filter inpar nahi lagta. `lastViewedAt` / `lastPlayedAt` null ho sakte hain |
+| category | `{ _id, name }` ya `null` |
+
+Khali page par bhi **200** aata hai `data: []` ke saath.
+
+### 9.3 Ek movie ki report
+
+`GET /movies/:id/stats` · Auth: sirf admin
+
+| Query | Rules |
+| --- | --- |
+| range, fromDate, toDate, platform | upar wali table |
+| groupBy | `day`, `week`, `month`. Na bhejo to auto (31 din tak day, 180 tak week, phir month). `day` max 366 din |
+| compare | `true` (default) / `false`. Pichhle period se comparison. `all_time` mein hamesha off |
+
+**Success 200** (asli response, chart ke points chhote kiye hain):
+
+```json
+{
+  "success": true,
+  "message": "Movie stats fetched successfully",
+  "data": {
+    "movie": {
+      "_id": "6ae9c890cfb2e42d54d3fb56", "title": "Free Movie", "languages": ["Hindi"],
+      "image": "https://...", "accessType": "free", "isActive": true,
+      "createdAt": "2026-11-03T11:42:08.690Z",
+      "category": { "_id": "6ae9c890cfb2e42d54d3fb4e", "name": "Drama" }
+    },
+    "filters": {
+      "range": "last_30_days", "fromDate": "2026-10-05", "toDate": "2026-11-03", "days": 30,
+      "groupBy": "day", "platform": null, "compare": true,
+      "previousFromDate": "2026-09-05", "previousToDate": "2026-10-04", "timezone": "Asia/Kolkata"
+    },
+    "allTime": {
+      "views": 4, "uniqueViewers": 3, "plays": 1, "uniquePlayers": 1, "playRate": 25,
+      "lastViewedAt": "2026-11-03T11:42:12.939Z", "lastPlayedAt": "2026-11-03T11:42:11.269Z"
+    },
+    "overview": {
+      "views": { "value": 104, "previous": 52, "changePercent": 100 },
+      "uniqueViewers": { "value": 4, "previous": 1, "changePercent": 300 },
+      "plays": { "value": 101, "previous": 10, "changePercent": 910 },
+      "uniquePlayers": { "value": 2, "previous": 1, "changePercent": 100 },
+      "playRate": { "value": 97.1, "previous": 19.2, "changePercent": 405.7 }
+    },
+    "charts": {
+      "groupBy": "day",
+      "points": [
+        { "date": "2026-10-24", "label": "24 Oct", "views": 100, "plays": 100, "uniqueViewers": 1, "uniquePlayers": 1 },
+        { "date": "2026-10-25", "label": "25 Oct", "views": 0, "plays": 0, "uniqueViewers": 0, "uniquePlayers": 0 },
+        { "date": "2026-11-03", "label": "3 Nov", "views": 4, "plays": 1, "uniqueViewers": 3, "uniquePlayers": 1 }
+      ]
+    },
+    "circles": {
+      "viewsByPlatform": {
+        "total": 104,
+        "items": [
+          { "key": "web", "label": "Web", "count": 102, "percent": 98.1 },
+          { "key": "android", "label": "Android", "count": 1, "percent": 1 },
+          { "key": "ios", "label": "iOS", "count": 1, "percent": 1 }
+        ]
+      },
+      "playsByPlatform": { "total": 101, "items": [ "...same shape..." ] },
+      "viewersByType": {
+        "total": 4,
+        "items": [
+          { "key": "guest", "label": "Guest", "count": 2, "percent": 50 },
+          { "key": "user", "label": "User", "count": 1, "percent": 25 },
+          { "key": "subscriber", "label": "Subscriber", "count": 1, "percent": 25 }
+        ]
+      },
+      "playersByType": { "total": 2, "items": [ "...same shape..." ] }
+    }
+  }
+}
+```
+
+| Block | Kya hai |
+| --- | --- |
+| movie | Movie ki basic info + `category` |
+| allTime | Ab tak ke total (range / platform se nahi badalte) |
+| overview | KPI cards `{ value, previous, changePercent }`, dashboard jaisa. `previous` 0 ho to `changePercent: null` |
+| charts.points | Range ka har bucket, 0 ke saath bhi. Unique numbers har bucket ke andar ke hain |
+| circles | `viewsByPlatform` / `playsByPlatform` (web, android, ios, aur platform na bheja ho to `unknown`). `viewersByType` / `playersByType` (guest, user, subscriber). Har viewer ek hi baar, range mein uske aakhri type se |
+
+### 9.4 Kis user ne dekhi
+
+`GET /movies/:id/viewers` · Auth: sirf admin
+
+Range mein jisne bhi movie kholi ya play ki, har viewer ki ek row (login user, ya guest ka device).
+
+| Query | Rules |
+| --- | --- |
+| range, fromDate, toDate, platform | upar wali table |
+| viewerType | `guest`, `user`, `subscriber` |
+| sortBy | `lastActiveAt` (default), `views`, `plays` |
+| sortOrder | `desc` (default) / `asc` |
+| page / limit | default 1 / 10, limit max 100 |
+
+**Success 200** (asli response, 4 mein se 2 rows dikhayi hain):
+
+```json
+{
+  "success": true,
+  "message": "Movie viewers fetched successfully",
+  "data": {
+    "movie": { "_id": "6ae9c890cfb2e42d54d3fb56", "title": "Free Movie" },
+    "filters": {
+      "range": "last_30_days", "fromDate": "2026-10-05", "toDate": "2026-11-03",
+      "platform": null, "viewerType": null, "sortBy": "lastActiveAt", "sortOrder": "desc",
+      "timezone": "Asia/Kolkata"
+    },
+    "total": 4,
+    "totalPages": 1,
+    "page": 1,
+    "limit": 10,
+    "data": [
+      {
+        "user": { "_id": "6ae9c890cfb2e42d54d3fb47", "name": "subscriber", "email": "subscriber@e2e.test" },
+        "deviceId": null,
+        "viewerType": "subscriber",
+        "views": 1, "plays": 0,
+        "lastViewedAt": "2026-11-03T11:42:12.939Z", "lastPlayedAt": null,
+        "lastActiveAt": "2026-11-03T11:42:12.939Z",
+        "platforms": ["ios"]
+      },
+      {
+        "user": null,
+        "deviceId": "guest-1",
+        "viewerType": "guest",
+        "views": 2, "plays": 1,
+        "lastViewedAt": "2026-11-03T11:42:10.808Z", "lastPlayedAt": "2026-11-03T11:42:11.269Z",
+        "lastActiveAt": "2026-11-03T11:42:11.269Z",
+        "platforms": ["web"]
+      }
+    ]
+  }
+}
+```
+
+| Field | Kya hai |
+| --- | --- |
+| user | `{ _id, name, email, mobile, image }` (jo fields hon). Guest ho to `null` |
+| deviceId | Sirf guest ka. Login user ka `null` |
+| viewerType | Range mein us viewer ka aakhri type |
+| views / plays | Range mein gine gaye views / plays |
+| platforms | Kin platforms se aaya. Platform na bheja ho to `unknown` |
+| lastActiveAt | `lastViewedAt` aur `lastPlayedAt` mein jo baad ka ho |
+
+User par click → `GET /subscriptions/admin/users/:userId` (4.7). Khali list par bhi **200**.
+
+### Errors (9.2, 9.3, 9.4)
+
+| Status | message | Kab |
+| --- | --- | --- |
+| 401 | `Access Denied! Missing authorization token` | Token nahi bheja |
+| 403 | `Forbidden: You do not have permission to perform this action.` | Staff ya user token |
+| 404 | `Movie not found` | Movie nahi hai ya delete ho gayi (9.3, 9.4) |
+| 422 | `Invalid Movie Id` | id ObjectId nahi hai |
+| 422 | `Sort By must be one of [views, uniqueViewers, plays, uniquePlayers, playRate, totalViews, totalPlays, title, createdAt]` | 9.2 mein galat sortBy |
+| 422 | `Sort By must be one of [lastActiveAt, views, plays]` | 9.4 mein galat sortBy |
+| 422 | `Viewer Type must be one of [guest, user, subscriber]` | |
+| 422 | `Limit must be less than or equal to 100` | |
+| 422 | `fromDate and toDate can only be used with range=custom` | Preset range ke saath dates |
+| 422 | `fromDate is required when range is custom` / `toDate cannot be before fromDate` | |
+| 422 | `From Date is not a valid date` | Jaise `2026-02-30` |
+| 422 | `groupBy=day allows at most 366 days, use week or month` | 9.3 |
+| 422 | `Platform must be one of [web, android, ios]` / `Invalid Category Id format` | |
+
+### Admin panel screens (suggestion)
+
+1. **Movies → "Popularity" tab:** upar range dropdown + platform + category + Free/Paid filter. Summary cards (Views, Plays, Unique viewers, Play rate, Movies watched). Neeche table: Rank, Poster, Title, Views, Plays, Unique viewers, Play rate, All-time plays. Column header par click → `sortBy`.
+2. **Movie row par click → report page (9.3):** KPI cards ▲▼ ke saath, views / plays line chart, platform donut, viewer type donut, upar all-time numbers.
+3. **Report page mein "Viewers" tab (9.4):** user ka naam / email ya "Guest", type badge, views, plays, last active.
+4. **Movies list table:** `stats.viewsLabel` / `stats.playsLabel` column (9.1).
+
+---
+
 ## Changelog
 
 - **2026-10-10:** Pehla version. Isme admin/staff login, Support inbox aur Gallery management hain.
 - **2026-10-10:** Subscriptions (plans, upgrade setting, user subscriptions, grant, cancel), Payments (list, detail, sync, stats) aur Movies free / paid add kiye. Plan add / delete par ab admin token zaroori hai.
 - **2026-10-11:** Users list (`GET /users/get-all`) add kiya. Default `role=user`, saare user fields ke filters, aur har user ka chalta plan (`isSubscribed`, `subscription`, `hasScheduled`) + `isSubscribed` / `planId` filters.
 - **2026-10-30:** Dashboard (`GET /dashboard/admin`, sirf admin) add kiya: KPI cards + comparison, charts, 20 analysis circles, section totals, recent lists, aur date range / groupBy / platform / plan / category filters.
+- **2026-11-03:** Movie stats (section 9) add kiya: `GET /movies/stats` (ranking), `GET /movies/:id/stats` (report), `GET /movies/:id/viewers`. Movie list / detail mein `stats`. Dashboard mein `overview.movieViews` / `moviePlays`, chart series `movieViews` / `moviePlays` aur `content.topMovies`.
