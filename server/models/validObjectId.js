@@ -23,6 +23,7 @@ module.exports = Object.freeze({
   subscriptionField: refField("Subscription", "plan"),
   userSubscriptionField: refField("UserSubscription", "user subscription"),
   paymentField: refField("Payment"),
+  movieField: refField("Movie"),
 
   // Array of ObjectIds with validation
   locationsField: Object.freeze({

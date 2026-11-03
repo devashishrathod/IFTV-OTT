@@ -5,7 +5,15 @@ const {
   STREAM_MAX_DURATION_SECONDS,
   MOVIE_ACCESS_TYPES,
   SUBSCRIPTION_LIMITS,
+  PLATFORMS,
+  DASHBOARD_GROUP_BY,
+  MOVIE_EVENTS,
+  MOVIE_VIEWER_TYPES,
+  MOVIE_STATS_LIMITS,
 } = require("../constants");
+const { rangeKeys, resolveRange } = require("./dashboard");
+const { LEADERBOARD_SORT_FIELDS } = require("../services/movies/movieLeaderboard");
+const { VIEWER_SORT_FIELDS } = require("../services/movies/movieViewers");
 
 const LIST_FIELDS = ["casts", "languages", "allowedPlans"];
 
@@ -231,9 +239,88 @@ exports.validateGetAllMoviesQuery = (payload) => {
     releaseDate: Joi.date().iso().optional(),
     fromDate: Joi.date().iso().optional(),
     toDate: Joi.date().iso().optional(),
+    // Any movie field, or views / plays / trending
     sortBy: Joi.string().optional(),
     sortOrder: Joi.string().valid("asc", "desc").optional(),
     accessType,
   });
   return getAllQuerySchema.validate(payload, { abortEarly: false });
+};
+
+const platform = Joi.string()
+  .valid(...Object.values(PLATFORMS))
+  .optional();
+
+const sortOrder = Joi.string().valid("asc", "desc").optional();
+
+const statsPage = {
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(MOVIE_STATS_LIMITS.MAX_PAGE_LIMIT).optional(),
+};
+
+exports.validateTrackMovie = (data) => {
+  const schema = Joi.object({
+    event: Joi.string()
+      .valid(...Object.values(MOVIE_EVENTS))
+      .required(),
+    platform,
+    // Required for guests (checked in the service); logged-in users may skip it
+    deviceId: Joi.string()
+      .trim()
+      .max(MOVIE_STATS_LIMITS.MAX_DEVICE_ID_LENGTH)
+      .pattern(/^[A-Za-z0-9._:-]+$/)
+      .optional()
+      .messages({
+        "string.pattern.base":
+          "deviceId may only contain letters, numbers and . _ : -",
+      }),
+  });
+  return schema.validate(data || {}, { abortEarly: false });
+};
+
+exports.validateMovieStatsQuery = (query) => {
+  const schema = Joi.object({
+    ...rangeKeys,
+    groupBy: Joi.string()
+      .valid(...Object.values(DASHBOARD_GROUP_BY))
+      .optional(),
+    platform,
+    compare: Joi.boolean().optional(),
+  }).custom(resolveRange);
+  return schema.validate(query, { abortEarly: false });
+};
+
+exports.validateMoviesLeaderboardQuery = (query) => {
+  const schema = Joi.object({
+    ...rangeKeys,
+    ...statsPage,
+    platform,
+    categoryId: objectId().optional().messages({
+      "any.invalid": "Invalid categoryId format",
+    }),
+    accessType,
+    isActive: Joi.boolean().optional(),
+    search: Joi.string().trim().max(120).optional(),
+    sortBy: Joi.string()
+      .valid(...LEADERBOARD_SORT_FIELDS)
+      .optional(),
+    sortOrder,
+  }).custom(resolveRange);
+  return schema.validate(query, { abortEarly: false });
+};
+
+exports.validateMovieViewersQuery = (query) => {
+  const schema = Joi.object({
+    ...rangeKeys,
+    ...statsPage,
+    platform,
+    viewerType: Joi.string()
+      .valid(...Object.values(MOVIE_VIEWER_TYPES))
+      .optional(),
+    sortBy: Joi.string()
+      .valid(...VIEWER_SORT_FIELDS)
+      .optional(),
+    sortOrder,
+  }).custom(resolveRange);
+  return schema.validate(query, { abortEarly: false });
 };

@@ -4,27 +4,32 @@ const Payment = require("../../models/Payment");
 const UserSubscription = require("../../models/UserSubscription");
 const SupportTicket = require("../../models/SupportTicket");
 const { DASHBOARD_RANGES, DASHBOARD_LIMITS, PAYMENT_LIMITS } = require("../../constants");
+const { firstActivityDay } = require("../movies/activityHelpers");
 const { resolvePeriod, buildBuckets, toDayString } = require("./dateRange");
 const { usersSection, USER_MATCH } = require("./users");
 const { paymentsSection } = require("./payments");
 const { subscriptionsSection } = require("./subscriptions");
 const { supportSection } = require("./support");
 const { contentSection } = require("./content");
+const { movieActivitySection } = require("./movieActivity");
 const { recentLists } = require("./recent");
 
 const { ObjectId } = mongoose.Types;
 
-// all_time starts at the oldest user, payment, subscription or ticket
+// all_time starts at the oldest user, payment, subscription, ticket or movie view
 const findFirstRecordAt = async () => {
   const oldest = (Model, match = {}) =>
     Model.findOne(match).sort({ createdAt: 1 }).select("createdAt").lean();
-  const rows = await Promise.all([
+  const [firstMovieDay, ...rows] = await Promise.all([
+    // Movie activity is dated by its IST day
+    firstActivityDay(),
     oldest(User, USER_MATCH),
     oldest(Payment),
     oldest(UserSubscription),
     oldest(SupportTicket, { isDeleted: false }),
   ]);
   const dates = rows.filter(Boolean).map((row) => row.createdAt.getTime());
+  if (firstMovieDay) dates.push(firstMovieDay.getTime());
   return dates.length ? new Date(Math.min(...dates)) : null;
 };
 
@@ -34,6 +39,7 @@ const buildFilters = ({ platform, planId, categoryId, recentLimit }) => {
   const byPlan = planId ? { planId: new ObjectId(planId) } : {};
   return {
     recentLimit: recentLimit || DASHBOARD_LIMITS.DEFAULT_RECENT_LIMIT,
+    platform: platform || null,
     paymentMatch: { ...byPlatform, ...byPlan },
     subscriptionMatch: { ...byPlatform, ...byPlan },
     ticketMatch: { isDeleted: false, ...byPlatform },
@@ -49,8 +55,10 @@ const rangeView = (range) =>
 // { "2026-10-01": row } for one chart series
 const byBucket = (rows = []) => new Map(rows.map((row) => [row._id, row]));
 
-const buildChart = (period, { users, payments, subscriptions, support }) => {
+const buildChart = (period, { users, payments, subscriptions, support, movies }) => {
   const series = {
+    movieViews: [byBucket(movies.trend.activity), "views"],
+    moviePlays: [byBucket(movies.trend.activity), "plays"],
     signups: [byBucket(users.trend.signups), "count"],
     revenue: [byBucket(payments.trend.paid), "amount"],
     paidPayments: [byBucket(payments.trend.paid), "count"],
@@ -85,12 +93,13 @@ exports.getAdminDashboard = async (query) => {
   const filters = buildFilters(query);
   const context = { period, filters, now };
 
-  const [users, payments, subscriptions, support, content, recent] = await Promise.all([
+  const [users, payments, subscriptions, support, content, movies, recent] = await Promise.all([
     usersSection(context),
     paymentsSection(context),
     subscriptionsSection(context),
     supportSection(context),
     contentSection(context),
+    movieActivitySection(context),
     recentLists(context),
   ]);
 
@@ -122,8 +131,10 @@ exports.getAdminDashboard = async (query) => {
       activeSubscribers: subscriptions.kpis.activeSubscribers,
       openTickets: support.kpis.openTickets,
       totalMovies: content.kpis.totalMovies,
+      movieViews: movies.kpis.movieViews,
+      moviePlays: movies.kpis.moviePlays,
     },
-    charts: buildChart(period, { users, payments, subscriptions, support }),
+    charts: buildChart(period, { users, payments, subscriptions, support, movies }),
     circles: {
       ...users.circles,
       ...payments.circles,
@@ -134,7 +145,8 @@ exports.getAdminDashboard = async (query) => {
     users: users.section,
     subscriptions: subscriptions.section,
     revenue: payments.section,
-    content: content.section,
+    // topMovies follows the date range; the rest of content is as of now
+    content: { ...content.section, topMovies: movies.topMovies },
     support: support.section,
     recent: {
       users: recent.users,

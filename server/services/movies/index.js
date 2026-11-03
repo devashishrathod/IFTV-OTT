@@ -4,6 +4,11 @@ const { getMovie } = require("./getMovie");
 const { deleteMovie } = require("./deleteMovie");
 const { updateMovie } = require("./updateMovie");
 const { createVideoUploadUrl, getVideoStatus } = require("./movieVideo");
+const { trackMovieEvent } = require("./trackMovie");
+const { getMovieStats } = require("./movieStats");
+const { getMoviesLeaderboard } = require("./movieLeaderboard");
+const { getMovieViewers } = require("./movieViewers");
+const { withPublicStats } = require("./movieStatsView");
 
 module.exports = {
   createMovie,
@@ -13,4 +18,9 @@ module.exports = {
   updateMovie,
   createVideoUploadUrl,
   getVideoStatus,
+  trackMovieEvent,
+  getMovieStats,
+  getMoviesLeaderboard,
+  getMovieViewers,
+  withPublicStats,
 };

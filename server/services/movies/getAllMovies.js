@@ -1,11 +1,55 @@
 const mongoose = require("mongoose");
 const Movie = require("../../models/Movie");
+const MovieActivity = require("../../models/MovieActivity");
 const { pagination, validateObjectId } = require("../../utils");
-const { MOVIE_ACCESS_TYPES } = require("../../constants");
+const { MOVIE_ACCESS_TYPES, MOVIE_STATS_LIMITS } = require("../../constants");
+const { startOfDay, addDays } = require("../dashboard/dateRange");
 
 const toRegex = (value, exact = false) => {
   const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(exact ? `^${escaped}$` : escaped, "i");
+};
+
+// sortBy shortcuts for the all-time counters
+const STATS_SORT_FIELDS = Object.freeze({
+  views: "stats.views",
+  plays: "stats.plays",
+});
+
+/**
+ * sortBy=trending: plays, then views, of the last TRENDING_DAYS days (today
+ * included), then all-time plays. The helper field is dropped again.
+ */
+const trendingStages = (direction) => {
+  const since = addDays(startOfDay(new Date()), -(MOVIE_STATS_LIMITS.TRENDING_DAYS - 1));
+  return [
+    {
+      $lookup: {
+        from: MovieActivity.collection.name,
+        localField: "_id",
+        foreignField: "movieId",
+        pipeline: [
+          { $match: { day: { $gte: since } } },
+          { $group: { _id: null, views: { $sum: "$views" }, plays: { $sum: "$plays" } } },
+        ],
+        as: "trending",
+      },
+    },
+    {
+      $set: {
+        trending: { $ifNull: [{ $first: "$trending" }, { views: 0, plays: 0 }] },
+      },
+    },
+    {
+      $sort: {
+        "trending.plays": direction,
+        "trending.views": direction,
+        "stats.plays": direction,
+        _id: direction,
+      },
+    },
+    { $unset: "trending" },
+  ];
 };
 
 exports.getAllMovies = async (query) => {
@@ -64,8 +108,15 @@ exports.getAllMovies = async (query) => {
     }
   }
   const pipeline = [{ $match: matchStage }];
-  const sortStage = {};
-  sortStage[sortBy] = sortOrder === "asc" ? 1 : -1;
-  pipeline.push({ $sort: sortStage });
+  const direction = sortOrder === "asc" ? 1 : -1;
+  if (sortBy === "trending") {
+    pipeline.push(...trendingStages(direction));
+  } else if (STATS_SORT_FIELDS[sortBy]) {
+    pipeline.push({ $sort: { [STATS_SORT_FIELDS[sortBy]]: direction, _id: direction } });
+  } else {
+    const sortStage = {};
+    sortStage[sortBy] = direction;
+    pipeline.push({ $sort: sortStage });
+  }
   return await pagination(Movie, pipeline, page, limit);
 };

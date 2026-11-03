@@ -223,6 +223,36 @@ module.exports = {
     PLAN_NOT_INCLUDED: "plan_not_included",
   }),
 
+  // What POST /movies/:id/track records: page opened, video started
+  MOVIE_EVENTS: Object.freeze({
+    VIEW: "view",
+    PLAY: "play",
+  }),
+
+  MOVIE_VIEWER_TYPES: Object.freeze({
+    GUEST: "guest",
+    USER: "user",
+    SUBSCRIBER: "subscriber",
+  }),
+
+  // Why a track call was not counted (counted: false)
+  MOVIE_TRACK_SKIP_REASONS: Object.freeze({
+    REPEAT: "repeat",
+    STAFF: "staff",
+    MOVIE_LOCKED: "movie_locked",
+  }),
+
+  MOVIE_STATS_LIMITS: Object.freeze({
+    // The same viewer again within this window is not counted again (refreshes)
+    REPEAT_WINDOW_MINUTES: 30,
+    // sortBy=trending ranks by plays (then views) of the last N days
+    TRENDING_DAYS: 7,
+    MAX_DEVICE_ID_LENGTH: 100,
+    DEFAULT_PAGE_LIMIT: 10,
+    MAX_PAGE_LIMIT: 100,
+    DASHBOARD_TOP_MOVIES: 5,
+  }),
+
   GALLERY_MEDIA_TYPES: Object.freeze({
     IMAGE: "image",
     GIF: "gif",

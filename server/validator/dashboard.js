@@ -27,13 +27,42 @@ const calendarDay = Joi.string()
     "any.invalid": "{#label} is not a valid date",
   });
 
+// range / fromDate / toDate, shared by every date range query
+exports.rangeKeys = Object.freeze({
+  range: Joi.string()
+    .valid(...Object.values(DASHBOARD_RANGES))
+    .optional(),
+  fromDate: calendarDay.optional(),
+  toDate: calendarDay.optional(),
+});
+
+/**
+ * Joi custom() for a schema built with rangeKeys: fills the default range
+ * and checks the custom dates.
+ */
+exports.resolveRange = (value, helpers) => {
+  const hasDates = Boolean(value.fromDate || value.toDate);
+  // Dates without a range mean a custom range
+  const range =
+    value.range ||
+    (hasDates ? DASHBOARD_RANGES.CUSTOM : DASHBOARD_LIMITS.DEFAULT_RANGE);
+  if (range !== DASHBOARD_RANGES.CUSTOM && hasDates) {
+    return helpers.message(
+      "fromDate and toDate can only be used with range=custom"
+    );
+  }
+  if (range === DASHBOARD_RANGES.CUSTOM && !value.fromDate) {
+    return helpers.message("fromDate is required when range is custom");
+  }
+  if (value.fromDate && value.toDate && value.toDate < value.fromDate) {
+    return helpers.message("toDate cannot be before fromDate");
+  }
+  return { ...value, range };
+};
+
 exports.validateDashboardQuery = (query) => {
   const schema = Joi.object({
-    range: Joi.string()
-      .valid(...Object.values(DASHBOARD_RANGES))
-      .optional(),
-    fromDate: calendarDay.optional(),
-    toDate: calendarDay.optional(),
+    ...exports.rangeKeys,
     groupBy: Joi.string()
       .valid(...Object.values(DASHBOARD_GROUP_BY))
       .optional(),
@@ -52,24 +81,6 @@ exports.validateDashboardQuery = (query) => {
       .min(1)
       .max(DASHBOARD_LIMITS.MAX_RECENT_LIMIT)
       .optional(),
-  }).custom((value, helpers) => {
-    const hasDates = Boolean(value.fromDate || value.toDate);
-    // Dates without a range mean a custom range
-    const range =
-      value.range ||
-      (hasDates ? DASHBOARD_RANGES.CUSTOM : DASHBOARD_LIMITS.DEFAULT_RANGE);
-    if (range !== DASHBOARD_RANGES.CUSTOM && hasDates) {
-      return helpers.message(
-        "fromDate and toDate can only be used with range=custom"
-      );
-    }
-    if (range === DASHBOARD_RANGES.CUSTOM && !value.fromDate) {
-      return helpers.message("fromDate is required when range is custom");
-    }
-    if (value.fromDate && value.toDate && value.toDate < value.fromDate) {
-      return helpers.message("toDate cannot be before fromDate");
-    }
-    return { ...value, range };
-  });
+  }).custom(exports.resolveRange);
   return schema.validate(query, { abortEarly: false });
 };
